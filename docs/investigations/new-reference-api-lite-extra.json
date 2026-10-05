@@ -1,0 +1,343 @@
+{
+  "recordedAt": "2026-10-05T08:32:24.094Z",
+  "credentialsSent": false,
+  "apiVersion": "1.6.2",
+  "platform": "lite",
+  "appid": 3116,
+  "clientver": 11440,
+  "network": [
+    {
+      "hostname": "gateway.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.43",
+          "family": 4
+        },
+        {
+          "address": "2001:2::2b",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 403,
+        "tls": true
+      }
+    },
+    {
+      "hostname": "openapi.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.133",
+          "family": 4
+        },
+        {
+          "address": "2001:2::85",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 502,
+        "tls": true
+      }
+    },
+    {
+      "hostname": "expendablekmr.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.143",
+          "family": 4
+        },
+        {
+          "address": "2001:2::8f",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 200,
+        "tls": true
+      }
+    },
+    {
+      "hostname": "h5activity.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.134",
+          "family": 4
+        },
+        {
+          "address": "2001:2::86",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 404,
+        "tls": true
+      }
+    },
+    {
+      "hostname": "openapicdn.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.149",
+          "family": 4
+        },
+        {
+          "address": "2001:2::95",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 502,
+        "tls": true
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "artist_lists",
+      "params": {
+        "hotsize": 3
+      },
+      "method": "GET",
+      "address": "https://gateway.kugou.com/ocean/v6/singer/list",
+      "status": 1,
+      "shape": {
+        "data": {
+          "timestamp": "number",
+          "info": {
+            "length": 28,
+            "first": {
+              "singer": {
+                "length": 3,
+                "first": {
+                  "albumcount": "number",
+                  "dycover": "object",
+                  "descibe": "string",
+                  "offline_url": "string",
+                  "heatoffset": "number",
+                  "singerid": "number",
+                  "songcount": "number",
+                  "fanscount": "number",
+                  "singername": "string",
+                  "is_settled": "number",
+                  "intro": "string",
+                  "mvcount": "number",
+                  "url": "string",
+                  "sortoffset": "number",
+                  "heat": "number",
+                  "imgurl": "string"
+                }
+              },
+              "title": "string"
+            }
+          },
+          "enu_list": {
+            "types": {
+              "length": 9,
+              "first": {
+                "value": "string",
+                "musician": "string"
+              }
+            },
+            "sextypes": {
+              "length": 4,
+              "first": {
+                "value": "string"
+              }
+            }
+          }
+        },
+        "errcode": "number",
+        "status": "number",
+        "error": "string"
+      },
+      "values": {},
+      "samples": [],
+      "singers": [
+        {
+          "id": 3520,
+          "name": "周杰伦",
+          "heat": 65169,
+          "description": "3.6万条问答",
+          "is_settled": 0,
+          "dycover": {
+            "first_frame_image": "http://singerimg.kugou.com/uploadpic/softhead/{size}/20260807/20260807113446764474.jpg"
+          }
+        },
+        {
+          "id": 3060,
+          "name": "薛之谦",
+          "heat": 25836,
+          "description": "9万条问答",
+          "is_settled": 1,
+          "dycover": {
+            "first_frame_image": ""
+          }
+        },
+        {
+          "id": 1574,
+          "name": "林俊杰",
+          "heat": 22324,
+          "description": "3万条问答",
+          "is_settled": 1,
+          "dycover": {
+            "first_frame_image": ""
+          }
+        },
+        {
+          "id": 2,
+          "name": "阿杜",
+          "heat": 2703,
+          "description": "205条问答",
+          "is_settled": 1,
+          "dycover": {
+            "first_frame_image": ""
+          }
+        },
+        {
+          "id": 1141684,
+          "name": "aespa",
+          "heat": 2592,
+          "description": "1937条问答",
+          "is_settled": 0,
+          "dycover": {
+            "first_frame_image": "http://singerimg.kugou.com/uploadpic/softhead/{size}/20260529/20260529100159724348.jpg"
+          }
+        },
+        {
+          "id": 636942,
+          "name": "阿YueYue",
+          "heat": 2012,
+          "description": "1191条问答",
+          "is_settled": 1,
+          "dycover": {
+            "first_frame_image": ""
+          }
+        },
+        {
+          "id": 7249,
+          "name": "BEYOND",
+          "heat": 7190,
+          "description": "4475条问答",
+          "is_settled": 0,
+          "dycover": {
+            "first_frame_image": ""
+          }
+        },
+        {
+          "id": 84161,
+          "name": "BIGBANG",
+          "heat": 5971,
+          "description": "925条问答",
+          "is_settled": 0,
+          "dycover": {
+            "first_frame_image": "http://singerimg.kugou.com/uploadpic/softhead/{size}/20260820/20260820122513603992.jpg"
+          }
+        },
+        {
+          "id": 799937,
+          "name": "宝石Gem",
+          "heat": 5182,
+          "description": "1946条问答",
+          "is_settled": 1,
+          "dycover": {
+            "first_frame_image": ""
+          }
+        }
+      ],
+      "images": []
+    },
+    {
+      "name": "artist_videos",
+      "params": {
+        "id": "3520",
+        "pagesize": 3,
+        "tag": "official"
+      },
+      "method": "GET",
+      "address": "https://openapicdn.kugou.com/kmr/v1/author/videos",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "total": "number",
+        "extra": {
+          "page_total": "number"
+        },
+        "data": {
+          "length": 3,
+          "first": {
+            "audio_bitrate": "number",
+            "publish_date": "string",
+            "mkv_sd_hash": "string",
+            "track": "number",
+            "album_audio_id": "number",
+            "mkv_qhd_hash": "string",
+            "hdpic": "string",
+            "history_heat": "number",
+            "heat": "number",
+            "user_name": "string",
+            "audio_filesize": "number",
+            "cover": "string",
+            "user_id": "string",
+            "topic": "string",
+            "remark": "string",
+            "extern": "string",
+            "timelength": "number",
+            "audio_hash": "string",
+            "pic": "string",
+            "mkv_sd_filesize": "string",
+            "video_name": "string",
+            "video_id": "number",
+            "intro": "string",
+            "audio_timelength": "string",
+            "author_name": "string",
+            "h264": {
+              "ld_hash": "string",
+              "ld_filesize": "number",
+              "ld_bitrate": "number",
+              "sd_hash": "string",
+              "sd_filesize": "number",
+              "sd_bitrate": "number",
+              "qhd_hash": "string",
+              "qhd_filesize": "number",
+              "qhd_bitrate": "number",
+              "hd_hash": "string",
+              "hd_filesize": "number",
+              "hd_bitrate": "number",
+              "fhd_hash": "string",
+              "fhd_bitrate": "number",
+              "fhd_filesize": "number"
+            },
+            "type": "number",
+            "is_short": "number"
+          }
+        }
+      },
+      "samples": [
+        {
+          "history_heat": 59456,
+          "heat": 938,
+          "video_name": "西西里",
+          "author_name": "周杰伦"
+        },
+        {
+          "history_heat": 18985487,
+          "heat": 290,
+          "video_name": "女儿殿下",
+          "author_name": "周杰伦"
+        },
+        {
+          "history_heat": 4331895,
+          "heat": 183,
+          "video_name": "七月的极光",
+          "author_name": "周杰伦"
+        }
+      ],
+      "images": []
+    }
+  ]
+}

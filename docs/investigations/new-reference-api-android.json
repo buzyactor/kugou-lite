@@ -1,0 +1,1300 @@
+{
+  "recordedAt": "2026-10-05T08:31:37.655Z",
+  "credentialsSent": false,
+  "apiVersion": "1.6.2",
+  "platform": "android",
+  "appid": 1005,
+  "clientver": 20489,
+  "network": [
+    {
+      "hostname": "gateway.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.43",
+          "family": 4
+        },
+        {
+          "address": "2001:2::2b",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 403,
+        "tls": true
+      }
+    },
+    {
+      "hostname": "openapi.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.133",
+          "family": 4
+        },
+        {
+          "address": "2001:2::85",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 502,
+        "tls": true
+      }
+    },
+    {
+      "hostname": "expendablekmr.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.143",
+          "family": 4
+        },
+        {
+          "address": "2001:2::8f",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 200,
+        "tls": true
+      }
+    },
+    {
+      "hostname": "h5activity.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.134",
+          "family": 4
+        },
+        {
+          "address": "2001:2::86",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 404,
+        "tls": true
+      }
+    },
+    {
+      "hostname": "openapicdn.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.149",
+          "family": 4
+        },
+        {
+          "address": "2001:2::95",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 502,
+        "tls": true
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "artist_detail",
+      "params": {
+        "id": "3520"
+      },
+      "method": "POST",
+      "address": "https://gateway.kugou.com/kmr/v3/author",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "data": {
+          "birthday": "string",
+          "mv_count": "number",
+          "pinyin_initial": "string",
+          "author_name": "string",
+          "sizable_avatar": "string",
+          "is_publish": "number",
+          "author_id": "string",
+          "album_count": "number",
+          "fansnums": "number",
+          "long_intro": {
+            "length": 5,
+            "first": {
+              "content": "string",
+              "title": "string"
+            }
+          },
+          "area_id": "string",
+          "song_count": "number",
+          "intro": "string",
+          "user_status": "number"
+        },
+        "msg": "string",
+        "status": "number",
+        "error_code": "number"
+      },
+      "values": {
+        "birthday": "1979-01-18",
+        "mv_count": 2828,
+        "author_name": "周杰伦",
+        "album_count": 49,
+        "fansnums": 25753396,
+        "song_count": 1844
+      },
+      "images": []
+    },
+    {
+      "name": "artist_audios_new",
+      "params": {
+        "id": "3520",
+        "sort": "hot",
+        "pagesize": 3
+      },
+      "method": "GET",
+      "address": "https://gateway.kugou.com/openapi/kmr/v2/audio_group/author",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "extra": {
+          "page_total": "number"
+        },
+        "data": {
+          "total": "number",
+          "songs": {
+            "length": 3,
+            "first": {
+              "mvdata": {
+                "length": 1,
+                "first": {
+                  "typ": "number",
+                  "id": "string",
+                  "hash": "string",
+                  "trk": "string"
+                }
+              },
+              "authors": {
+                "length": 1,
+                "first": {
+                  "identity": "number",
+                  "sisp": "number",
+                  "base": "object"
+                }
+              },
+              "author_name": "string",
+              "copyright": {
+                "old_cpy": "number",
+                "trans_param_departed": {
+                  "hash_offset": "object",
+                  "musicpack_advance": "number",
+                  "pay_block_tpl": "number",
+                  "display": "number",
+                  "display_rate": "number",
+                  "appid_block": "string",
+                  "cpy_grade": "number",
+                  "cpy_level": "number",
+                  "cid": "number",
+                  "cpy_attr0": "number",
+                  "cpy_map": "string",
+                  "classmap": "object",
+                  "hash_multitrack": "string",
+                  "qualitymap": "object",
+                  "language": "string",
+                  "ipmap": "object",
+                  "ogg_128_hash": "string",
+                  "ogg_128_filesize": "number",
+                  "ogg_320_hash": "string",
+                  "ogg_320_filesize": "number",
+                  "union_cover": "string",
+                  "is_original": "number"
+                }
+              },
+              "publish": "number",
+              "is_stick": "boolean",
+              "musical": {},
+              "author_id": "number",
+              "goods_info": {
+                "audio_pay_type": "number",
+                "could_buy_type": "string",
+                "album_sale_url": "string",
+                "album_pay_type": "number"
+              },
+              "remarks": {
+                "length": 1,
+                "first": {
+                  "type": "number",
+                  "remark": "string",
+                  "default": "number",
+                  "add_time": "string"
+                }
+              },
+              "mv_id": "number",
+              "album_id": "number",
+              "audio_name": "string",
+              "has_obbligato": "number",
+              "privilege_download": {
+                "privilege_128": "number",
+                "privilege_320": "number",
+                "privilege_high": "number",
+                "privilege_flac": "number",
+                "privilege_super": "number",
+                "fail_process_128": "number"
+              },
+              "audio_id": "number",
+              "album_audio_id": "number",
+              "audio_info": {
+                "hash": "string",
+                "filesize": "number",
+                "timelength": "number",
+                "bitrate": "number",
+                "hash_320": "string",
+                "filesize_320": "number",
+                "timelength_320": "number",
+                "hash_flac": "string",
+                "filesize_flac": "number",
+                "timelength_flac": "number",
+                "bitrate_flac": "number",
+                "hash_high": "string",
+                "filesize_high": "number",
+                "timelength_high": "number",
+                "bitrate_high": "number",
+                "hash_super": "string",
+                "filesize_super": "number",
+                "timelength_super": "number",
+                "bitrate_super": "number",
+                "extname": "string",
+                "extname_super": "string"
+              },
+              "publish_date": "string",
+              "audio_group_id": "number",
+              "album_info": {
+                "album_name": "string",
+                "cover": "string",
+                "category": "number"
+              },
+              "mvhash": "string",
+              "extra": {
+                "is_original": "number"
+              },
+              "identity": "number",
+              "version": "number",
+              "audio_tag": {
+                "length": 1,
+                "first": {
+                  "type": "number",
+                  "desc": "string",
+                  "rank_audio_tag": "object"
+                }
+              }
+            }
+          },
+          "input_param": {
+            "input_identity": "number",
+            "identity": "number",
+            "author_identity": "number",
+            "sort": "number"
+          }
+        }
+      },
+      "values": {
+        "total": 1844
+      },
+      "images": []
+    },
+    {
+      "name": "artist_albums",
+      "params": {
+        "id": "3520",
+        "pagesize": 3
+      },
+      "method": "POST",
+      "address": "https://gateway.kugou.com/kmr/v1/author/albums",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "total": "number",
+        "error_code": "number",
+        "data": {
+          "length": 3,
+          "first": {
+            "publish_company": "string",
+            "author_name": "string",
+            "sizable_cover": "string",
+            "category": "number",
+            "grade_count": "number",
+            "special_tag": "string",
+            "privilege_download": {
+              "privilege": "number",
+              "fail_process": "number"
+            },
+            "album_name": "string",
+            "is_publish": "number",
+            "goods_info": {
+              "could_buy_album": "string",
+              "album_pay_type": "number",
+              "album_sale_url": "string",
+              "album_price": "number"
+            },
+            "grade": "number",
+            "heat": "number",
+            "exclusive": "number",
+            "sum_ownercount": "number",
+            "language_id": "number",
+            "quality": "number",
+            "publish_date": "string",
+            "album_id": "number",
+            "cover": "string",
+            "authors": {
+              "length": 1,
+              "first": {
+                "author_name": "string",
+                "author_id": "number"
+              }
+            },
+            "language": "string",
+            "intro": "string",
+            "type": "string"
+          }
+        },
+        "extra": {
+          "page_total": "number"
+        },
+        "status": "number",
+        "errmsg": "string"
+      },
+      "images": []
+    },
+    {
+      "name": "artist_videos",
+      "params": {
+        "id": "3520",
+        "pagesize": 3,
+        "tag": "official"
+      },
+      "method": "GET",
+      "address": "https://openapicdn.kugou.com/kmr/v1/author/videos",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "total": "number",
+        "extra": {
+          "page_total": "number"
+        },
+        "data": {
+          "length": 3,
+          "first": {
+            "audio_bitrate": "number",
+            "publish_date": "string",
+            "mkv_sd_hash": "string",
+            "track": "number",
+            "album_audio_id": "number",
+            "mkv_qhd_hash": "string",
+            "hdpic": "string",
+            "history_heat": "number",
+            "heat": "number",
+            "user_name": "string",
+            "audio_filesize": "number",
+            "cover": "string",
+            "user_id": "string",
+            "topic": "string",
+            "remark": "string",
+            "extern": "string",
+            "timelength": "number",
+            "audio_hash": "string",
+            "pic": "string",
+            "mkv_sd_filesize": "string",
+            "video_name": "string",
+            "video_id": "number",
+            "intro": "string",
+            "audio_timelength": "string",
+            "author_name": "string",
+            "h264": {
+              "ld_hash": "string",
+              "ld_filesize": "number",
+              "ld_bitrate": "number",
+              "sd_hash": "string",
+              "sd_filesize": "number",
+              "sd_bitrate": "number",
+              "qhd_hash": "string",
+              "qhd_filesize": "number",
+              "qhd_bitrate": "number",
+              "hd_hash": "string",
+              "hd_filesize": "number",
+              "hd_bitrate": "number",
+              "fhd_hash": "string",
+              "fhd_bitrate": "number",
+              "fhd_filesize": "number"
+            },
+            "type": "number",
+            "is_short": "number"
+          }
+        }
+      },
+      "images": []
+    },
+    {
+      "name": "artist_detail",
+      "params": {
+        "id": "3066"
+      },
+      "method": "POST",
+      "address": "https://gateway.kugou.com/kmr/v3/author",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "data": {
+          "birthday": "string",
+          "mv_count": "number",
+          "pinyin_initial": "string",
+          "author_name": "string",
+          "sizable_avatar": "string",
+          "is_publish": "number",
+          "author_id": "string",
+          "album_count": "number",
+          "fansnums": "number",
+          "long_intro": {
+            "length": 5,
+            "first": {
+              "content": "string",
+              "title": "string"
+            }
+          },
+          "area_id": "string",
+          "song_count": "number",
+          "intro": "string",
+          "user_status": "number"
+        },
+        "msg": "string",
+        "status": "number",
+        "error_code": "number"
+      },
+      "values": {
+        "birthday": "1946-08-03",
+        "mv_count": 26,
+        "author_name": "许冠英",
+        "album_count": 11,
+        "fansnums": 26906,
+        "song_count": 207
+      },
+      "images": []
+    },
+    {
+      "name": "artist_audios_new",
+      "params": {
+        "id": "3066",
+        "sort": "hot",
+        "pagesize": 3
+      },
+      "method": "GET",
+      "address": "https://gateway.kugou.com/openapi/kmr/v2/audio_group/author",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "extra": {
+          "page_total": "number"
+        },
+        "data": {
+          "total": "number",
+          "songs": {
+            "length": 3,
+            "first": {
+              "mvdata": {
+                "length": 1,
+                "first": {
+                  "typ": "number",
+                  "id": "string",
+                  "hash": "string",
+                  "trk": "string"
+                }
+              },
+              "authors": {
+                "length": 1,
+                "first": {
+                  "identity": "number",
+                  "sisp": "number",
+                  "base": "object"
+                }
+              },
+              "author_name": "string",
+              "copyright": {
+                "old_cpy": "number",
+                "trans_param_departed": {
+                  "musicpack_advance": "number",
+                  "pay_block_tpl": "number",
+                  "display": "number",
+                  "display_rate": "number",
+                  "cid": "number",
+                  "cpy_attr0": "number",
+                  "cpy_map": "string",
+                  "classmap": "object",
+                  "hash_multitrack": "string",
+                  "qualitymap": "object",
+                  "language": "string",
+                  "ipmap": "object",
+                  "ogg_128_hash": "string",
+                  "ogg_128_filesize": "number",
+                  "ogg_320_hash": "string",
+                  "ogg_320_filesize": "number",
+                  "union_cover": "string",
+                  "is_original": "number"
+                }
+              },
+              "publish": "number",
+              "is_stick": "boolean",
+              "musical": {},
+              "author_id": "number",
+              "goods_info": {
+                "audio_pay_type": "number",
+                "could_buy_type": "string",
+                "album_sale_url": "string",
+                "album_pay_type": "number"
+              },
+              "remarks": {
+                "length": 1,
+                "first": {
+                  "type": "number",
+                  "remark": "string",
+                  "default": "number",
+                  "add_time": "string"
+                }
+              },
+              "mv_id": "number",
+              "album_id": "number",
+              "audio_name": "string",
+              "has_obbligato": "number",
+              "privilege_download": {
+                "privilege_128": "number",
+                "privilege_320": "number",
+                "privilege_high": "number",
+                "privilege_flac": "number",
+                "privilege_super": "number",
+                "fail_process_128": "number"
+              },
+              "audio_id": "number",
+              "album_audio_id": "number",
+              "audio_info": {
+                "hash": "string",
+                "filesize": "number",
+                "timelength": "number",
+                "bitrate": "number",
+                "hash_320": "string",
+                "filesize_320": "number",
+                "timelength_320": "number",
+                "hash_flac": "string",
+                "filesize_flac": "number",
+                "timelength_flac": "number",
+                "bitrate_flac": "number",
+                "hash_high": "string",
+                "filesize_high": "number",
+                "timelength_high": "number",
+                "bitrate_high": "number",
+                "hash_super": "string",
+                "filesize_super": "number",
+                "timelength_super": "number",
+                "bitrate_super": "number",
+                "extname": "string",
+                "extname_super": "string"
+              },
+              "publish_date": "string",
+              "audio_group_id": "number",
+              "album_info": {
+                "album_name": "string",
+                "cover": "string",
+                "category": "number"
+              },
+              "mvhash": "string",
+              "extra": {
+                "is_original": "number"
+              },
+              "identity": "number",
+              "version": "number",
+              "audio_tag": {
+                "length": 1,
+                "first": {
+                  "type": "number",
+                  "desc": "string",
+                  "ip_audio_tag": "object"
+                }
+              }
+            }
+          },
+          "input_param": {
+            "input_identity": "number",
+            "identity": "number",
+            "author_identity": "number",
+            "sort": "number"
+          }
+        }
+      },
+      "values": {
+        "total": 207
+      },
+      "images": []
+    },
+    {
+      "name": "artist_albums",
+      "params": {
+        "id": "3066",
+        "pagesize": 3
+      },
+      "method": "POST",
+      "address": "https://gateway.kugou.com/kmr/v1/author/albums",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "total": "number",
+        "error_code": "number",
+        "data": {
+          "length": 3,
+          "first": {
+            "publish_company": "string",
+            "author_name": "string",
+            "sizable_cover": "string",
+            "category": "number",
+            "grade_count": "number",
+            "special_tag": "string",
+            "privilege_download": {
+              "privilege": "number",
+              "fail_process": "number"
+            },
+            "album_name": "string",
+            "is_publish": "number",
+            "goods_info": {
+              "could_buy_album": "string",
+              "album_pay_type": "number",
+              "album_sale_url": "string",
+              "album_price": "number"
+            },
+            "grade": "number",
+            "heat": "number",
+            "exclusive": "number",
+            "sum_ownercount": "number",
+            "language_id": "number",
+            "quality": "number",
+            "publish_date": "string",
+            "album_id": "number",
+            "cover": "string",
+            "authors": {
+              "length": 2,
+              "first": {
+                "author_name": "string",
+                "author_id": "number"
+              }
+            },
+            "language": "string",
+            "intro": "string",
+            "type": "string"
+          }
+        },
+        "extra": {
+          "page_total": "number"
+        },
+        "status": "number",
+        "errmsg": "string"
+      },
+      "images": []
+    },
+    {
+      "name": "artist_videos",
+      "params": {
+        "id": "3066",
+        "pagesize": 3,
+        "tag": "official"
+      },
+      "method": "GET",
+      "address": "https://openapicdn.kugou.com/kmr/v1/author/videos",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "total": "number",
+        "extra": {
+          "page_total": "number"
+        },
+        "data": {
+          "length": 0,
+          "first": "undefined"
+        }
+      },
+      "images": []
+    },
+    {
+      "name": "search",
+      "params": {
+        "keywords": "周杰伦",
+        "type": "author",
+        "pagesize": 3
+      },
+      "method": "GET",
+      "address": "https://gateway.kugou.com/v1/search/author",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "error_msg": "string",
+        "data": {
+          "pagesize": "number",
+          "page": "number",
+          "from": "number",
+          "size": "number",
+          "total": "number",
+          "correctiontype": "number",
+          "correctionforce": "number",
+          "correctiontip": "string",
+          "lists": {
+            "length": 3,
+            "first": {
+              "AuthorId": "number",
+              "AuthorName": "string",
+              "IsSettledAuthor": "number",
+              "Avatar": "string",
+              "Heat": "number",
+              "Auxiliary": "string",
+              "AlbumCount": "number",
+              "AudioCount": "number",
+              "VideoCount": "number",
+              "LyricistCount": "number",
+              "ComposerCount": "number",
+              "Identity": "number",
+              "ComplexSongName": "string",
+              "FansNum": "number",
+              "UserId": "number",
+              "AuthorStatus": "number",
+              "AlgPath": "string",
+              "FirstFrameImage": "string",
+              "IsReal": "number"
+            }
+          }
+        }
+      },
+      "values": {
+        "total": 29
+      },
+      "searchFlags": [
+        {
+          "AuthorId": 3520,
+          "IsSettledAuthor": 0,
+          "Heat": 24340778,
+          "Identity": 1135,
+          "FansNum": 25753385,
+          "UserId": 0,
+          "IsReal": 1
+        },
+        {
+          "AuthorId": 9895911,
+          "IsSettledAuthor": 0,
+          "Heat": 134,
+          "Identity": 1,
+          "FansNum": 340,
+          "UserId": 0,
+          "IsReal": 0
+        },
+        {
+          "AuthorId": 15304145,
+          "IsSettledAuthor": 0,
+          "Heat": 42,
+          "Identity": 9,
+          "FansNum": 46,
+          "UserId": 0,
+          "IsReal": 0
+        }
+      ],
+      "images": []
+    },
+    {
+      "name": "artist_lists",
+      "params": {
+        "hotsize": 3
+      },
+      "method": "GET",
+      "address": "https://gateway.kugou.com/ocean/v6/singer/list",
+      "status": 1,
+      "shape": {
+        "data": {
+          "timestamp": "number",
+          "info": {
+            "length": 28,
+            "first": {
+              "singer": {
+                "length": 3,
+                "first": {
+                  "albumcount": "number",
+                  "dycover": "object",
+                  "descibe": "string",
+                  "offline_url": "string",
+                  "heatoffset": "number",
+                  "singerid": "number",
+                  "songcount": "number",
+                  "fanscount": "number",
+                  "singername": "string",
+                  "is_settled": "number",
+                  "intro": "string",
+                  "mvcount": "number",
+                  "url": "string",
+                  "sortoffset": "number",
+                  "heat": "number",
+                  "imgurl": "string"
+                }
+              },
+              "title": "string"
+            }
+          },
+          "enu_list": {
+            "types": {
+              "length": 9,
+              "first": {
+                "value": "string",
+                "musician": "string"
+              }
+            },
+            "sextypes": {
+              "length": 4,
+              "first": {
+                "value": "string"
+              }
+            }
+          }
+        },
+        "errcode": "number",
+        "status": "number",
+        "error": "string"
+      },
+      "values": {},
+      "images": []
+    },
+    {
+      "name": "images",
+      "params": {
+        "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+        "count": 5
+      },
+      "method": "GET",
+      "address": "https://expendablekmr.kugou.com/container/v2/image",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "author": {
+              "length": 1,
+              "first": {
+                "author_id": "number",
+                "author_name": "string",
+                "is_publish": "number",
+                "res_hash": "string",
+                "avatar": "string",
+                "sizable_avatar": "string",
+                "audio_publish_date": "string",
+                "imgs": {
+                  "3": "object",
+                  "4": "object",
+                  "5": "object"
+                }
+              }
+            },
+            "album": {
+              "length": 1,
+              "first": {
+                "album_id": "number",
+                "album_name": "string",
+                "category": "number",
+                "sizable_cover": "string",
+                "imgs": {
+                  "length": 0
+                },
+                "has_dycovers": "number"
+              }
+            }
+          }
+        }
+      },
+      "images": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "3": 1,
+            "4": 5,
+            "5": 1
+          },
+          "uniqueUrls": 7
+        }
+      ]
+    },
+    {
+      "name": "images_audio",
+      "params": {
+        "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+        "count": 5
+      },
+      "method": "GET",
+      "address": "https://expendablekmr.kugou.com/v2/author_image/audio",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "length": 1,
+            "first": {
+              "author_id": "number",
+              "author_name": "string",
+              "is_publish": "number",
+              "res_hash": "string",
+              "avatar": "string",
+              "sizable_avatar": "string",
+              "audio_publish_date": "string",
+              "imgs": {
+                "2": {
+                  "length": 3
+                },
+                "3": {
+                  "length": 1
+                },
+                "4": {
+                  "length": 5
+                },
+                "5": {
+                  "length": 1
+                },
+                "6": {
+                  "length": 5
+                },
+                "7": {
+                  "length": 1
+                },
+                "8": {
+                  "length": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "images": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "2": 3,
+            "3": 1,
+            "4": 5,
+            "5": 1,
+            "6": 5,
+            "7": 1,
+            "8": 1
+          },
+          "uniqueUrls": 17
+        }
+      ]
+    },
+    {
+      "name": "images",
+      "params": {
+        "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+        "count": 100
+      },
+      "method": "GET",
+      "address": "https://expendablekmr.kugou.com/container/v2/image",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "author": {
+              "length": 1,
+              "first": {
+                "author_id": "number",
+                "author_name": "string",
+                "is_publish": "number",
+                "res_hash": "string",
+                "avatar": "string",
+                "sizable_avatar": "string",
+                "audio_publish_date": "string",
+                "imgs": {
+                  "3": "object",
+                  "4": "object",
+                  "5": "object"
+                }
+              }
+            },
+            "album": {
+              "length": 1,
+              "first": {
+                "album_id": "number",
+                "album_name": "string",
+                "category": "number",
+                "sizable_cover": "string",
+                "imgs": {
+                  "length": 0
+                },
+                "has_dycovers": "number"
+              }
+            }
+          }
+        }
+      },
+      "images": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "3": 1,
+            "4": 15,
+            "5": 1
+          },
+          "uniqueUrls": 17
+        }
+      ]
+    },
+    {
+      "name": "images_audio",
+      "params": {
+        "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+        "count": 100
+      },
+      "method": "GET",
+      "address": "https://expendablekmr.kugou.com/v2/author_image/audio",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "length": 1,
+            "first": {
+              "author_id": "number",
+              "author_name": "string",
+              "is_publish": "number",
+              "res_hash": "string",
+              "avatar": "string",
+              "sizable_avatar": "string",
+              "audio_publish_date": "string",
+              "imgs": {
+                "2": {
+                  "length": 3
+                },
+                "3": {
+                  "length": 1
+                },
+                "4": {
+                  "length": 15
+                },
+                "5": {
+                  "length": 1
+                },
+                "6": {
+                  "length": 20
+                },
+                "7": {
+                  "length": 1
+                },
+                "8": {
+                  "length": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "images": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "2": 3,
+            "3": 1,
+            "4": 15,
+            "5": 1,
+            "6": 20,
+            "7": 1,
+            "8": 1
+          },
+          "uniqueUrls": 42
+        }
+      ]
+    },
+    {
+      "name": "artist_honour",
+      "params": {
+        "id": "3520",
+        "pagesize": 3
+      },
+      "method": "POST",
+      "address": "http://h5activity.kugou.com/v1/query_singer_honour_detail",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "error_msg": "string",
+        "error_code": "number",
+        "data": {
+          "info_list": {
+            "length": 20,
+            "first": {
+              "rank_pos_general": "number",
+              "media_name": "string",
+              "topic_url": "string",
+              "rank_days": "number",
+              "ep_rank": {
+                "arrival_time": "string",
+                "max_type": "string"
+              },
+              "media_id": "number",
+              "rank_pos_weekly": "number",
+              "rank_pos_daily": "number",
+              "album_cover": "string",
+              "src_type": "string"
+            }
+          }
+        },
+        "status": "number",
+        "serice_ts": "number"
+      },
+      "values": {},
+      "images": []
+    },
+    {
+      "name": "krm_audio",
+      "params": {
+        "album_audio_id": "32100650",
+        "fields": "base,authors.base,authors.ip,extra,tags,tagmap"
+      },
+      "method": "POST",
+      "address": "https://gateway.kugou.com/kmr/v2/audio",
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "error_code": "number",
+        "msg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "__status": "number",
+            "extra": {
+              "ori_audio_name": "string",
+              "translated_name": "string",
+              "remark": "string",
+              "suffix_audio_name": "string",
+              "is_search": "number",
+              "is_original": "number",
+              "composer": "string",
+              "lyrics": "string",
+              "is_choric": "number",
+              "sort": "number",
+              "bpm": "number",
+              "mixsong_type": "number",
+              "is_break_rule": "number",
+              "addtime": "string",
+              "is_recommend": "number",
+              "upload_time": "string",
+              "disc": "number",
+              "source": "number",
+              "last_publish_time": "number",
+              "grayscale": "number",
+              "ori_mixsongid": "number",
+              "stolen_level": "number",
+              "bpm_type": "string",
+              "bpm_desc": "string",
+              "ori_name": "string",
+              "lyric_id": "number"
+            },
+            "tags": {
+              "length": 27,
+              "first": {
+                "id": "number",
+                "name": "string",
+                "pid": "number",
+                "is_publish": "number"
+              }
+            },
+            "authors": {
+              "length": 1,
+              "first": {
+                "sisp": "number",
+                "identity": "number",
+                "base": {
+                  "author_id": "number",
+                  "author_name": "string",
+                  "is_publish": "number",
+                  "language": "string",
+                  "avatar": "string",
+                  "identity": "number",
+                  "type": "number",
+                  "country": "string",
+                  "birthday": "string"
+                }
+              }
+            },
+            "tagmap": {
+              "genre0": "number"
+            },
+            "base": {
+              "album_id": "number",
+              "songname": "string",
+              "author_name": "string",
+              "album_name": "string",
+              "version": "number",
+              "language": "string",
+              "publish_date": "string",
+              "wide_audio_id": "number",
+              "is_publish": "number",
+              "provider": "number",
+              "big_pack_id": "number",
+              "final_id": "number",
+              "audio_id": "number",
+              "similar_audio_id": "number",
+              "is_hot": "number",
+              "_raw_publish": "number",
+              "album_audio_id": "number",
+              "audio_group_id": "number"
+            },
+            "album_info": {
+              "album_id": "number",
+              "album_name": "string",
+              "publish_date": "string",
+              "is_publish": "number",
+              "cover": "string",
+              "category": "number"
+            },
+            "class": {
+              "length": 4,
+              "first": {
+                "status": "number",
+                "usage": "number",
+                "type": "number",
+                "level": "number"
+              }
+            }
+          }
+        },
+        "status": "number"
+      },
+      "images": []
+    }
+  ]
+}

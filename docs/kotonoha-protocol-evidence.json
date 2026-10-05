@@ -1,0 +1,101 @@
+{
+  "referenceCommit": "175cfcc04ffb67fbbba26c76437275083090233a",
+  "protocol": "kotonoha.adapter",
+  "version": 1,
+  "backend": "real mpv --ao=null / local synthetic PCM",
+  "receiver": "actual upstream AdapterReceiver/decoder/display coordinator",
+  "desktopVerified": false,
+  "acceptedFrames": 20,
+  "rejectedFrames": 0,
+  "checks": [
+    "offline playback",
+    "word times/offset/translation",
+    "actual duration",
+    "pause/resume",
+    "actual seek",
+    "same-song restart without lyrics",
+    "single-loop EOF/restart",
+    "reconnect snapshot",
+    "stop"
+  ],
+  "snapshot": {
+    "protocol": "kotonoha.adapter",
+    "version": 1,
+    "type": "snapshot",
+    "adapter": "kugou-lite",
+    "sequence": 0,
+    "capturedAt": "2026-10-05T10:53:18.800Z",
+    "playback": {
+      "playerId": "kugou-lite-protocol-probe",
+      "status": "Playing",
+      "positionS": 0.250484,
+      "durationS": 8,
+      "track": {
+        "stableId": "kugou-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-123",
+        "title": "Integration Tone",
+        "rawTitle": "Integration Tone",
+        "artist": "Local Fixture",
+        "album": "Protocol Test",
+        "durationS": 8
+      }
+    },
+    "lyrics": {
+      "source": "kugou",
+      "sourceName": "酷狗 KRC",
+      "songId": "kugou-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-123",
+      "timing": "Word",
+      "title": "Integration Tone",
+      "artist": "Local Fixture",
+      "album": "Protocol Test",
+      "durationS": 8,
+      "lines": [
+        {
+          "index": 0,
+          "id": "line-0",
+          "start": 1.25,
+          "end": 2.45,
+          "text": "Hello world",
+          "translation": "本地测试译文",
+          "words": [
+            {
+              "start": 1.25,
+              "end": 1.65,
+              "text": "Hello"
+            },
+            {
+              "start": 1.65,
+              "end": 2.45,
+              "text": " world"
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "id": "line-1",
+          "start": 4.25,
+          "end": 5.25,
+          "text": "Again",
+          "translation": "本地测试译文",
+          "words": [
+            {
+              "start": 4.25,
+              "end": 5.25,
+              "text": "Again"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "clock": {
+    "protocol": "kotonoha.adapter",
+    "version": 1,
+    "type": "clock",
+    "adapter": "kugou-lite",
+    "sequence": 5,
+    "capturedAt": "2026-10-05T10:53:18.833Z",
+    "trackRef": "kugou-lite:kugou-lite-protocol-probe:kugou-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-123",
+    "positionS": 3.00004,
+    "status": "Playing"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "kugou-lite-feasibility",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "references": "node tools/clone-references.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "vip:probe": "node tools/vip-probe.mjs",
+    "api:start": "node tools/start-api.mjs",
+    "login": "node tools/login.mjs",
+    "tui": "cargo run --manifest-path tui/Cargo.toml",
+    "playback:probe": "node tools/playback-probe.mjs"
+  }
+}

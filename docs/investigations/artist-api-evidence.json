@@ -1,0 +1,2205 @@
+{
+  "recordedAt": "2026-10-05T08:12:43.371Z",
+  "credentialsSent": false,
+  "localApiVersion": "1.3.9",
+  "kgcheckinCommit": "8bf3e12aada29682f27af0852457ebc7fd19227d",
+  "upstreamMainPackageVersion": "1.6.2",
+  "network": [
+    {
+      "hostname": "gateway.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.43",
+          "family": 4
+        },
+        {
+          "address": "2001:2::2b",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 403,
+        "tls": true
+      }
+    },
+    {
+      "hostname": "openapi.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.133",
+          "family": 4
+        },
+        {
+          "address": "2001:2::85",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 502,
+        "tls": true
+      }
+    },
+    {
+      "hostname": "expendablekmr.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.143",
+          "family": 4
+        },
+        {
+          "address": "2001:2::8f",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 200,
+        "tls": true
+      }
+    },
+    {
+      "hostname": "h5activity.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.134",
+          "family": 4
+        },
+        {
+          "address": "2001:2::86",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 404,
+        "tls": true
+      }
+    },
+    {
+      "hostname": "singerimg.kugou.com",
+      "dns": [
+        {
+          "address": "198.18.0.118",
+          "family": 4
+        },
+        {
+          "address": "2001:2::76",
+          "family": 6
+        }
+      ],
+      "https": {
+        "status": 404,
+        "tls": true
+      }
+    }
+  ],
+  "dimensions": [
+    {
+      "field": "Avatar",
+      "size": 240,
+      "actual": [
+        240,
+        240
+      ],
+      "bytes": 15761,
+      "format": "JPEG"
+    },
+    {
+      "field": "Avatar",
+      "size": 480,
+      "actual": [
+        480,
+        480
+      ],
+      "bytes": 57588,
+      "format": "JPEG"
+    },
+    {
+      "field": "Avatar",
+      "size": 600,
+      "actual": [
+        600,
+        600
+      ],
+      "bytes": 83467,
+      "format": "JPEG"
+    },
+    {
+      "field": "FirstFrameImage",
+      "size": 240,
+      "actual": [
+        240,
+        240
+      ],
+      "bytes": 15253,
+      "format": "JPEG"
+    },
+    {
+      "field": "FirstFrameImage",
+      "size": 480,
+      "actual": [
+        480,
+        480
+      ],
+      "bytes": 42997,
+      "format": "JPEG"
+    },
+    {
+      "field": "FirstFrameImage",
+      "size": 600,
+      "actual": [
+        600,
+        600
+      ],
+      "bytes": 42292,
+      "format": "JPEG"
+    }
+  ],
+  "checks": [
+    {
+      "label": "detail",
+      "request": {
+        "method": "POST",
+        "url": "https://gateway.kugou.com/kmr/v3/author",
+        "params": {
+          "id": 3520
+        },
+        "router": "openapi.kugou.com",
+        "dataFields": [
+          "author_id"
+        ]
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "data": {
+          "birthday": "string",
+          "mv_count": "number",
+          "pinyin_initial": "string",
+          "author_name": "string",
+          "sizable_avatar": "string",
+          "is_publish": "number",
+          "author_id": "string",
+          "album_count": "number",
+          "fansnums": "number",
+          "long_intro": {
+            "length": 5,
+            "first": {
+              "content": "string",
+              "title": "string"
+            }
+          },
+          "area_id": "string",
+          "song_count": "number",
+          "intro": "string",
+          "user_status": "number"
+        },
+        "msg": "string",
+        "status": "number",
+        "error_code": "number"
+      },
+      "topFields": [
+        "data",
+        "msg",
+        "status",
+        "error_code"
+      ],
+      "dataFields": [
+        "birthday",
+        "mv_count",
+        "pinyin_initial",
+        "author_name",
+        "sizable_avatar",
+        "is_publish",
+        "author_id",
+        "album_count",
+        "fansnums",
+        "long_intro",
+        "area_id",
+        "song_count",
+        "intro",
+        "user_status"
+      ],
+      "values": {
+        "author_id": "3520",
+        "birthday": "1979-01-18",
+        "song_count": 1844,
+        "album_count": 49,
+        "mv_count": 2828,
+        "fansnums": 25753291,
+        "sizable_avatar": "http://singerimg.kugou.com/uploadpic/softhead/{size}/20260324/20260324203006202058.jpg",
+        "user_status": 0
+      }
+    },
+    {
+      "label": "search",
+      "request": {
+        "method": "GET",
+        "url": "https://gateway.kugou.com/v1/search/author",
+        "params": {
+          "keywords": "周杰伦",
+          "type": "author",
+          "pagesize": 3
+        },
+        "router": "complexsearch.kugou.com",
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "error_msg": "string",
+        "data": {
+          "pagesize": "number",
+          "page": "number",
+          "from": "number",
+          "size": "number",
+          "total": "number",
+          "correctiontype": "number",
+          "correctionforce": "number",
+          "correctiontip": "string",
+          "lists": {
+            "length": 3,
+            "first": {
+              "AuthorId": "number",
+              "AuthorName": "string",
+              "IsSettledAuthor": "number",
+              "Avatar": "string",
+              "Heat": "number",
+              "Auxiliary": "string",
+              "AlbumCount": "number",
+              "AudioCount": "number",
+              "VideoCount": "number",
+              "LyricistCount": "number",
+              "ComposerCount": "number",
+              "Identity": "number",
+              "ComplexSongName": "string",
+              "FansNum": "number",
+              "UserId": "number",
+              "AuthorStatus": "number",
+              "AlgPath": "string",
+              "FirstFrameImage": "string",
+              "IsReal": "number"
+            }
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "error_msg",
+        "data"
+      ],
+      "dataFields": [
+        "pagesize",
+        "page",
+        "from",
+        "size",
+        "total",
+        "correctiontype",
+        "correctionforce",
+        "correctiontip",
+        "lists"
+      ],
+      "sample": {
+        "AuthorId": 3520,
+        "IsSettledAuthor": 0,
+        "Avatar": "http://singerimg.kugou.com/uploadpic/softhead/240/20260324/20260324203006202058.jpg",
+        "Heat": 24340778,
+        "Identity": 1135,
+        "FansNum": 25753213,
+        "UserId": 0,
+        "FirstFrameImage": "http://singerimg.kugou.com/uploadpic/softhead/{size}/20260807/20260807113446764474.jpg",
+        "IsReal": 1
+      }
+    },
+    {
+      "label": "audios hot",
+      "request": {
+        "method": "POST",
+        "url": "https://openapi.kugou.com/kmr/v1/audio_group/author",
+        "params": {
+          "id": 3520,
+          "sort": "hot",
+          "pagesize": 3
+        },
+        "router": "openapi.kugou.com",
+        "dataFields": [
+          "appid",
+          "clientver",
+          "mid",
+          "clienttime",
+          "key",
+          "author_id",
+          "pagesize",
+          "page",
+          "sort",
+          "area_code"
+        ]
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "total": "number",
+        "error_code": "number",
+        "data": {
+          "length": 3,
+          "first": {
+            "video_track": "number",
+            "filesize_flac": "number",
+            "old_hide_flac": "number",
+            "playcount": "number",
+            "status": "number",
+            "video_file_head": "number",
+            "filesize_320": "number",
+            "rp_id": "number",
+            "bitrate_flac": "number",
+            "old_hide": "number",
+            "trans_param": {
+              "cpy_grade": "number",
+              "classmap": {
+                "attr0": "number"
+              },
+              "language": "string",
+              "cpy_attr0": "number",
+              "musicpack_advance": "number",
+              "display": "number",
+              "display_rate": "number",
+              "ogg_320_hash": "string",
+              "cpy_map": "string",
+              "union_cover": "string",
+              "ogg_320_filesize": "number",
+              "qualitymap": {
+                "bits": "string",
+                "attr0": "number",
+                "attr1": "number"
+              },
+              "is_original": "number",
+              "ogg_128_filesize": "number",
+              "cid": "number",
+              "ogg_128_hash": "string",
+              "pay_block_tpl": "number",
+              "ipmap": {
+                "attr0": "number"
+              },
+              "hash_offset": {
+                "clip_hash": "string",
+                "start_byte": "number",
+                "end_ms": "number",
+                "end_byte": "number",
+                "file_type": "number",
+                "start_ms": "number",
+                "offset_hash": "string"
+              },
+              "appid_block": "string",
+              "hash_multitrack": "string",
+              "cpy_level": "number"
+            },
+            "pay_type_128": "number",
+            "remarks": {
+              "length": 5,
+              "first": {
+                "rel_album_audio_id": "number",
+                "remark_type": "number",
+                "remark": "string",
+                "is_defaut_alias": "string"
+              }
+            },
+            "all_privs_super": {},
+            "video_hash": "string",
+            "is_original": "number",
+            "version": "number",
+            "topic_url_high": "string",
+            "identity": "number",
+            "album_id": "number",
+            "old_cpy_320": "number",
+            "privilege_high": "number",
+            "pay_type": "number",
+            "all_privs_128": {
+              "3": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "4": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "5": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "6": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "7": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              }
+            },
+            "topic_url_flac": "string",
+            "rp_publish": "number",
+            "pkg_price_super": "number",
+            "pkg_price_high": "number",
+            "pkg_price_flac": "number",
+            "video_filesize": "number",
+            "price_high": "number",
+            "tmp_privilege": "number",
+            "pkg_price": "number",
+            "status_320": "number",
+            "album_audio_id": "number",
+            "pay_type_super": "number",
+            "old_hide_320": "number",
+            "pkg_price_320": "number",
+            "topic_remark": "string",
+            "pay_type_high": "number",
+            "privilege_128": "number",
+            "timelength_320": "number",
+            "price_flac": "number",
+            "fail_process_128": "number",
+            "audio_name": "string",
+            "timelength_flac": "number",
+            "price_320": "number",
+            "pay_type_flac": "number",
+            "topic_url": "string",
+            "cid": "number",
+            "audio_file_head": "number",
+            "filesize_super": "number",
+            "topic_url_super": "string",
+            "old_cpy_super": "number",
+            "all_privs_high": {
+              "3": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "4": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "5": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "6": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "7": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              }
+            },
+            "all_privs": {
+              "3": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "4": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "5": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "6": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "7": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              }
+            },
+            "topic_url_320": "string",
+            "mixsong_type": "number",
+            "rp_type_320": "string",
+            "hash": "string",
+            "author_name": "string",
+            "all_privs_flac": {
+              "3": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "4": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "5": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "6": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "7": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              }
+            },
+            "fail_process_high": "number",
+            "status_flac": "number",
+            "audio_id": "number",
+            "status_128": "number",
+            "price_128": "number",
+            "rp_type_flac": "string",
+            "pay_type_320": "number",
+            "all_privs_320": {
+              "3": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "4": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "5": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "6": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              },
+              "7": {
+                "fail_process": "number",
+                "privilege": "number",
+                "status": "number"
+              }
+            },
+            "timelength_high": "number",
+            "filesize_128": "number",
+            "rp_type_super": "string",
+            "album_name": "string",
+            "rp_type_high": "string",
+            "topic_url_128": "string",
+            "rp_type_128": "string",
+            "songid": "number",
+            "rp_type": "string",
+            "fail_process_super": "number",
+            "extname_super": "string",
+            "status_high": "number",
+            "publish_date": "string",
+            "hash_320": "string",
+            "bitrate_super": "number",
+            "hash_high": "string",
+            "extname": "string",
+            "fail_process_320": "number",
+            "fail_process": "number",
+            "old_cpy_high": "number",
+            "timelength_super": "number",
+            "old_cpy_flac": "number",
+            "level": "number",
+            "old_hide_super": "number",
+            "privilege_flac": "number",
+            "old_cpy": "number",
+            "status_super": "number",
+            "old_cpy_128": "number",
+            "old_hide_128": "number",
+            "video_timelength": "number",
+            "bitrate": "number",
+            "cd_url": "string",
+            "privilege_320": "number",
+            "pkg_price_128": "number",
+            "price": "number",
+            "filesize_high": "number",
+            "filesize": "number",
+            "timelength_128": "number",
+            "price_super": "number",
+            "has_obbligato": "number",
+            "hash_128": "string",
+            "album_audio_remark": "string",
+            "bitrate_high": "number",
+            "fail_process_flac": "number",
+            "hash_flac": "string",
+            "old_hide_high": "number",
+            "hash_super": "string",
+            "timelength": "number",
+            "privilege": "number",
+            "privilege_super": "number",
+            "video_id": "number"
+          }
+        },
+        "extra": {
+          "page_total": "number",
+          "group": "number"
+        },
+        "errcode": "number",
+        "status": "number",
+        "errmsg": "string"
+      },
+      "topFields": [
+        "total",
+        "error_code",
+        "data",
+        "extra",
+        "errcode",
+        "status",
+        "errmsg"
+      ]
+    },
+    {
+      "label": "images 1",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "images/audio 1",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "images 5",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "images/audio 5",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "images 20",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "images/audio 20",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "image type 3",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "image type 4",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "image type 5",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "images page2",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "new audios",
+      "request": {
+        "method": "GET",
+        "url": "https://gateway.kugou.com/openapi/kmr/v2/audio_group/author",
+        "params": {
+          "id": 3520,
+          "sort": "hot",
+          "pagesize": 3
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "extra": {
+          "page_total": "number"
+        },
+        "data": {
+          "total": "number",
+          "songs": {
+            "length": 3,
+            "first": {
+              "mvdata": {
+                "length": 1,
+                "first": {
+                  "typ": "number",
+                  "id": "string",
+                  "hash": "string",
+                  "trk": "string"
+                }
+              },
+              "authors": {
+                "length": 1,
+                "first": {
+                  "identity": "number",
+                  "sisp": "number",
+                  "base": {
+                    "author_id": "number",
+                    "author_name": "string",
+                    "is_publish": "number",
+                    "language": "string",
+                    "avatar": "string",
+                    "identity": "number",
+                    "type": "number",
+                    "country": "string",
+                    "birthday": "string"
+                  }
+                }
+              },
+              "author_name": "string",
+              "copyright": {
+                "old_cpy": "number",
+                "trans_param_departed": {
+                  "hash_offset": {
+                    "start_byte": "number",
+                    "end_byte": "number",
+                    "start_ms": "number",
+                    "end_ms": "number",
+                    "offset_hash": "string",
+                    "file_type": "number",
+                    "clip_hash": "string"
+                  },
+                  "musicpack_advance": "number",
+                  "pay_block_tpl": "number",
+                  "display": "number",
+                  "display_rate": "number",
+                  "appid_block": "string",
+                  "cpy_grade": "number",
+                  "cpy_level": "number",
+                  "cid": "number",
+                  "cpy_attr0": "number",
+                  "cpy_map": "string",
+                  "classmap": {
+                    "attr0": "number"
+                  },
+                  "hash_multitrack": "string",
+                  "qualitymap": {
+                    "attr0": "number",
+                    "attr1": "number",
+                    "bits": "string"
+                  },
+                  "language": "string",
+                  "ipmap": {
+                    "attr0": "number"
+                  },
+                  "ogg_128_hash": "string",
+                  "ogg_128_filesize": "number",
+                  "ogg_320_hash": "string",
+                  "ogg_320_filesize": "number",
+                  "union_cover": "string",
+                  "is_original": "number"
+                }
+              },
+              "publish": "number",
+              "is_stick": "boolean",
+              "musical": {},
+              "author_id": "number",
+              "goods_info": {
+                "audio_pay_type": "number",
+                "could_buy_type": "string",
+                "album_sale_url": "string",
+                "album_pay_type": "number"
+              },
+              "remarks": {
+                "length": 1,
+                "first": {
+                  "type": "number",
+                  "remark": "string",
+                  "default": "number",
+                  "add_time": "string"
+                }
+              },
+              "mv_id": "number",
+              "album_id": "number",
+              "audio_name": "string",
+              "has_obbligato": "number",
+              "privilege_download": {
+                "privilege_128": "number",
+                "privilege_320": "number",
+                "privilege_high": "number",
+                "privilege_flac": "number",
+                "privilege_super": "number",
+                "fail_process_128": "number"
+              },
+              "audio_id": "number",
+              "album_audio_id": "number",
+              "audio_info": {
+                "hash": "string",
+                "filesize": "number",
+                "timelength": "number",
+                "bitrate": "number",
+                "hash_320": "string",
+                "filesize_320": "number",
+                "timelength_320": "number",
+                "hash_flac": "string",
+                "filesize_flac": "number",
+                "timelength_flac": "number",
+                "bitrate_flac": "number",
+                "hash_high": "string",
+                "filesize_high": "number",
+                "timelength_high": "number",
+                "bitrate_high": "number",
+                "hash_super": "string",
+                "filesize_super": "number",
+                "timelength_super": "number",
+                "bitrate_super": "number",
+                "extname": "string",
+                "extname_super": "string"
+              },
+              "publish_date": "string",
+              "audio_group_id": "number",
+              "album_info": {
+                "album_name": "string",
+                "cover": "string",
+                "category": "number"
+              },
+              "mvhash": "string",
+              "extra": {
+                "is_original": "number"
+              },
+              "identity": "number",
+              "version": "number",
+              "audio_tag": {
+                "length": 1,
+                "first": {
+                  "type": "number",
+                  "desc": "string",
+                  "rank_audio_tag": {
+                    "desc": "string",
+                    "rank_id": "number",
+                    "rank_name": "string",
+                    "sort": "number",
+                    "rank_cid": "number",
+                    "zone": "string"
+                  }
+                }
+              }
+            }
+          },
+          "input_param": {
+            "input_identity": "number",
+            "identity": "number",
+            "author_identity": "number",
+            "sort": "number"
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "errcode",
+        "errmsg",
+        "extra",
+        "data"
+      ],
+      "dataFields": [
+        "total",
+        "songs",
+        "input_param"
+      ]
+    },
+    {
+      "label": "honour1",
+      "request": {
+        "method": "POST",
+        "url": "http://h5activity.kugou.com/v1/query_singer_honour_detail",
+        "params": {
+          "id": 3520,
+          "page": 1,
+          "pagesize": 3
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "error_msg": "string",
+        "error_code": "number",
+        "data": {
+          "info_list": {
+            "length": 20,
+            "first": {
+              "rank_pos_general": "number",
+              "media_name": "string",
+              "topic_url": "string",
+              "rank_days": "number",
+              "ep_rank": {
+                "arrival_time": "string",
+                "max_type": "string"
+              },
+              "media_id": "number",
+              "rank_pos_weekly": "number",
+              "rank_pos_daily": "number",
+              "album_cover": "string",
+              "src_type": "string"
+            }
+          }
+        },
+        "status": "number",
+        "serice_ts": "number"
+      },
+      "topFields": [
+        "error_msg",
+        "error_code",
+        "data",
+        "status",
+        "serice_ts"
+      ],
+      "dataFields": [
+        "info_list"
+      ]
+    },
+    {
+      "label": "honour2",
+      "request": {
+        "method": "POST",
+        "url": "http://h5activity.kugou.com/v1/query_singer_honour_detail",
+        "params": {
+          "id": 3520,
+          "page": 2,
+          "pagesize": 3
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "error_msg": "string",
+        "error_code": "number",
+        "data": {
+          "info_list": {
+            "length": 20,
+            "first": {
+              "highest_ranking": "number",
+              "file_name": "string",
+              "audio_name": "string",
+              "hash_128": "string",
+              "album_audio_id": "number",
+              "audio_pic": "string",
+              "accumulated_days": "number",
+              "album_id": "number",
+              "audio_id": "number",
+              "hash_flac": "string",
+              "hash_320": "string",
+              "hash": "string",
+              "src_type": "string"
+            }
+          }
+        },
+        "status": "number",
+        "serice_ts": "number"
+      },
+      "topFields": [
+        "error_msg",
+        "error_code",
+        "data",
+        "status",
+        "serice_ts"
+      ],
+      "dataFields": [
+        "info_list"
+      ]
+    },
+    {
+      "label": "android images",
+      "request": {
+        "method": "GET",
+        "url": "https://expendablekmr.kugou.com/container/v2/image",
+        "params": {
+          "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+          "count": 20,
+          "album_id": "966846",
+          "album_audio_id": "32100650",
+          "audio_id": "",
+          "filename": "周杰伦 - 晴天"
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "author": {
+              "length": 1,
+              "first": {
+                "author_id": "number",
+                "author_name": "string",
+                "is_publish": "number",
+                "res_hash": "string",
+                "avatar": "string",
+                "sizable_avatar": "string",
+                "audio_publish_date": "string",
+                "imgs": {
+                  "3": {
+                    "length": 1
+                  },
+                  "4": {
+                    "length": 15
+                  },
+                  "5": {
+                    "length": 1
+                  }
+                }
+              }
+            },
+            "album": {
+              "length": 1,
+              "first": {
+                "album_id": "number",
+                "album_name": "string",
+                "category": "number",
+                "sizable_cover": "string",
+                "imgs": {
+                  "length": 0,
+                  "first": "undefined"
+                },
+                "has_dycovers": "number"
+              }
+            }
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "errcode",
+        "errmsg",
+        "data"
+      ],
+      "authors": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "3": 1,
+            "4": 15,
+            "5": 1
+          },
+          "uniqueUrls": 17,
+          "examples": {
+            "3": "http://singerimg.kugou.com/v2/singer_portrait/20141023/20141023121150664.jpg",
+            "4": "http://imge.kugou.com/v2/mobile_portrait/20260429151838447528.jpg",
+            "5": "http://singerimg.kugou.com/uploadpic/mobilehead/{size}/20250107/20250107160437485631.jpg"
+          }
+        }
+      ]
+    },
+    {
+      "label": "android images 1",
+      "request": {
+        "method": "GET",
+        "url": "https://expendablekmr.kugou.com/container/v2/image",
+        "params": {
+          "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+          "count": 1
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "author": {
+              "length": 1,
+              "first": {
+                "author_id": "number",
+                "author_name": "string",
+                "is_publish": "number",
+                "res_hash": "string",
+                "avatar": "string",
+                "sizable_avatar": "string",
+                "audio_publish_date": "string",
+                "imgs": {
+                  "3": {
+                    "length": 1
+                  },
+                  "4": {
+                    "length": 1
+                  },
+                  "5": {
+                    "length": 1
+                  }
+                }
+              }
+            },
+            "album": {
+              "length": 1,
+              "first": {
+                "album_id": "number",
+                "album_name": "string",
+                "category": "number",
+                "sizable_cover": "string",
+                "imgs": {
+                  "length": 0,
+                  "first": "undefined"
+                },
+                "has_dycovers": "number"
+              }
+            }
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "errcode",
+        "errmsg",
+        "data"
+      ],
+      "authors": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "3": 1,
+            "4": 1,
+            "5": 1
+          },
+          "uniqueUrls": 3,
+          "examples": {
+            "3": "http://singerimg.kugou.com/v2/singer_portrait/20141023/20141023121150664.jpg",
+            "4": "http://imge.kugou.com/v2/mobile_portrait/20260429151344356580.jpg",
+            "5": "http://singerimg.kugou.com/uploadpic/mobilehead/{size}/20250107/20250107160437485631.jpg"
+          }
+        }
+      ]
+    },
+    {
+      "label": "android images 5",
+      "request": {
+        "method": "GET",
+        "url": "https://expendablekmr.kugou.com/container/v2/image",
+        "params": {
+          "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+          "count": 5
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "author": {
+              "length": 1,
+              "first": {
+                "author_id": "number",
+                "author_name": "string",
+                "is_publish": "number",
+                "res_hash": "string",
+                "avatar": "string",
+                "sizable_avatar": "string",
+                "audio_publish_date": "string",
+                "imgs": {
+                  "3": {
+                    "length": 1
+                  },
+                  "4": {
+                    "length": 5
+                  },
+                  "5": {
+                    "length": 1
+                  }
+                }
+              }
+            },
+            "album": {
+              "length": 1,
+              "first": {
+                "album_id": "number",
+                "album_name": "string",
+                "category": "number",
+                "sizable_cover": "string",
+                "imgs": {
+                  "length": 0,
+                  "first": "undefined"
+                },
+                "has_dycovers": "number"
+              }
+            }
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "errcode",
+        "errmsg",
+        "data"
+      ],
+      "authors": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "3": 1,
+            "4": 5,
+            "5": 1
+          },
+          "uniqueUrls": 7,
+          "examples": {
+            "3": "http://singerimg.kugou.com/v2/singer_portrait/20141023/20141023121150664.jpg",
+            "4": "http://imge.kugou.com/v2/mobile_portrait/20260429143424348028.jpg",
+            "5": "http://singerimg.kugou.com/uploadpic/mobilehead/{size}/20250107/20250107160437485631.jpg"
+          }
+        }
+      ]
+    },
+    {
+      "label": "android images_audio",
+      "request": {
+        "method": "GET",
+        "url": "https://expendablekmr.kugou.com/v2/author_image/audio",
+        "params": {
+          "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+          "count": 20,
+          "album_id": "966846",
+          "album_audio_id": "32100650",
+          "audio_id": "",
+          "filename": "周杰伦 - 晴天"
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "length": 1,
+            "first": {
+              "author_id": "number",
+              "author_name": "string",
+              "is_publish": "number",
+              "res_hash": "string",
+              "avatar": "string",
+              "sizable_avatar": "string",
+              "audio_publish_date": "string",
+              "imgs": {
+                "2": {
+                  "length": 3,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "3": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "4": {
+                  "length": 15,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "5": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "6": {
+                  "length": 20,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "7": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "8": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "errcode",
+        "errmsg",
+        "data"
+      ],
+      "authors": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "2": 3,
+            "3": 1,
+            "4": 15,
+            "5": 1,
+            "6": 20,
+            "7": 1,
+            "8": 1
+          },
+          "uniqueUrls": 42,
+          "examples": {
+            "2": "http://singerimg.kugou.com/uploadpic/softimage/20131104/20131104162445242.jpg",
+            "3": "http://singerimg.kugou.com/v2/singer_portrait/20141023/20141023121150664.jpg",
+            "4": "http://imge.kugou.com/v2/mobile_portrait/20260429151838447528.jpg",
+            "5": "http://singerimg.kugou.com/uploadpic/mobilehead/{size}/20250107/20250107160437485631.jpg",
+            "6": "http://imge.kugou.com/v2/mobile_super_portrait/20260429151830680160.jpg",
+            "7": "http://imge.kugou.com/v2/rank_portrait/50261e111da72f2594214094aa0d30fa.png_400x400.png",
+            "8": "http://imge.kugou.com/v2/banner_portrait/0ca8e884c088373be07a97afc5482822.png"
+          }
+        }
+      ]
+    },
+    {
+      "label": "android images_audio 1",
+      "request": {
+        "method": "GET",
+        "url": "https://expendablekmr.kugou.com/v2/author_image/audio",
+        "params": {
+          "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+          "count": 1
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "length": 1,
+            "first": {
+              "author_id": "number",
+              "author_name": "string",
+              "is_publish": "number",
+              "res_hash": "string",
+              "avatar": "string",
+              "sizable_avatar": "string",
+              "audio_publish_date": "string",
+              "imgs": {
+                "2": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "3": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "4": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "5": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "6": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "7": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "8": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "errcode",
+        "errmsg",
+        "data"
+      ],
+      "authors": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1
+          },
+          "uniqueUrls": 7,
+          "examples": {
+            "2": "http://singerimg.kugou.com/uploadpic/softimage/20131102/20131102131807593.jpg",
+            "3": "http://singerimg.kugou.com/v2/singer_portrait/20141023/20141023121150664.jpg",
+            "4": "http://imge.kugou.com/v2/mobile_portrait/20260429151344356580.jpg",
+            "5": "http://singerimg.kugou.com/uploadpic/mobilehead/{size}/20250107/20250107160437485631.jpg",
+            "6": "http://imge.kugou.com/v2/mobile_super_portrait/20260429151304447049.jpg",
+            "7": "http://imge.kugou.com/v2/rank_portrait/50261e111da72f2594214094aa0d30fa.png_400x400.png",
+            "8": "http://imge.kugou.com/v2/banner_portrait/0ca8e884c088373be07a97afc5482822.png"
+          }
+        }
+      ]
+    },
+    {
+      "label": "android images_audio 5",
+      "request": {
+        "method": "GET",
+        "url": "https://expendablekmr.kugou.com/v2/author_image/audio",
+        "params": {
+          "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+          "count": 5
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "length": 1,
+            "first": {
+              "author_id": "number",
+              "author_name": "string",
+              "is_publish": "number",
+              "res_hash": "string",
+              "avatar": "string",
+              "sizable_avatar": "string",
+              "audio_publish_date": "string",
+              "imgs": {
+                "2": {
+                  "length": 3,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "3": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "4": {
+                  "length": 5,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "5": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "6": {
+                  "length": 5,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "7": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "8": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "errcode",
+        "errmsg",
+        "data"
+      ],
+      "authors": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "2": 3,
+            "3": 1,
+            "4": 5,
+            "5": 1,
+            "6": 5,
+            "7": 1,
+            "8": 1
+          },
+          "uniqueUrls": 17,
+          "examples": {
+            "2": "http://singerimg.kugou.com/uploadpic/softimage/20131104/20131104162445242.jpg",
+            "3": "http://singerimg.kugou.com/v2/singer_portrait/20141023/20141023121150664.jpg",
+            "4": "http://imge.kugou.com/v2/mobile_portrait/20260429143424348028.jpg",
+            "5": "http://singerimg.kugou.com/uploadpic/mobilehead/{size}/20250107/20250107160437485631.jpg",
+            "6": "http://imge.kugou.com/v2/mobile_super_portrait/20260429151417121398.jpg",
+            "7": "http://imge.kugou.com/v2/rank_portrait/50261e111da72f2594214094aa0d30fa.png_400x400.png",
+            "8": "http://imge.kugou.com/v2/banner_portrait/0ca8e884c088373be07a97afc5482822.png"
+          }
+        }
+      ]
+    },
+    {
+      "label": "lite images",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "lite images_audio",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "android type 3",
+      "request": {
+        "method": "GET",
+        "url": "https://expendablekmr.kugou.com/container/v2/image",
+        "params": {
+          "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+          "count": 20
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "author": {
+              "length": 1,
+              "first": {
+                "author_id": "number",
+                "author_name": "string",
+                "is_publish": "number",
+                "res_hash": "string",
+                "avatar": "string",
+                "sizable_avatar": "string",
+                "audio_publish_date": "string",
+                "imgs": {
+                  "3": {
+                    "length": 1
+                  }
+                }
+              }
+            },
+            "album": {
+              "length": 1,
+              "first": {
+                "album_id": "number",
+                "album_name": "string",
+                "category": "number",
+                "sizable_cover": "string",
+                "imgs": {
+                  "length": 0,
+                  "first": "undefined"
+                },
+                "has_dycovers": "number"
+              }
+            }
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "errcode",
+        "errmsg",
+        "data"
+      ],
+      "authors": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "3": 1
+          },
+          "uniqueUrls": 1,
+          "examples": {
+            "3": "http://singerimg.kugou.com/v2/singer_portrait/20141023/20141023121150664.jpg"
+          }
+        }
+      ]
+    },
+    {
+      "label": "android type 4",
+      "request": {
+        "method": "GET",
+        "url": "https://expendablekmr.kugou.com/container/v2/image",
+        "params": {
+          "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+          "count": 20
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "author": {
+              "length": 1,
+              "first": {
+                "author_id": "number",
+                "author_name": "string",
+                "is_publish": "number",
+                "res_hash": "string",
+                "avatar": "string",
+                "sizable_avatar": "string",
+                "audio_publish_date": "string",
+                "imgs": {
+                  "4": {
+                    "length": 15
+                  }
+                }
+              }
+            },
+            "album": {
+              "length": 1,
+              "first": {
+                "album_id": "number",
+                "album_name": "string",
+                "category": "number",
+                "sizable_cover": "string",
+                "imgs": {
+                  "length": 0,
+                  "first": "undefined"
+                },
+                "has_dycovers": "number"
+              }
+            }
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "errcode",
+        "errmsg",
+        "data"
+      ],
+      "authors": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "4": 15
+          },
+          "uniqueUrls": 15,
+          "examples": {
+            "4": "http://imge.kugou.com/v2/mobile_portrait/20260429151838447528.jpg"
+          }
+        }
+      ]
+    },
+    {
+      "label": "android type 5",
+      "request": {
+        "method": "GET",
+        "url": "https://expendablekmr.kugou.com/container/v2/image",
+        "params": {
+          "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+          "count": 20
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "author": {
+              "length": 1,
+              "first": {
+                "author_id": "number",
+                "author_name": "string",
+                "is_publish": "number",
+                "res_hash": "string",
+                "avatar": "string",
+                "sizable_avatar": "string",
+                "audio_publish_date": "string",
+                "imgs": {
+                  "5": {
+                    "length": 1
+                  }
+                }
+              }
+            },
+            "album": {
+              "length": 1,
+              "first": {
+                "album_id": "number",
+                "album_name": "string",
+                "category": "number",
+                "sizable_cover": "string",
+                "imgs": {
+                  "length": 0,
+                  "first": "undefined"
+                },
+                "has_dycovers": "number"
+              }
+            }
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "errcode",
+        "errmsg",
+        "data"
+      ],
+      "authors": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "5": 1
+          },
+          "uniqueUrls": 1,
+          "examples": {
+            "5": "http://singerimg.kugou.com/uploadpic/mobilehead/{size}/20250107/20250107160437485631.jpg"
+          }
+        }
+      ]
+    },
+    {
+      "label": "android page2",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    },
+    {
+      "label": "android images_audio 100",
+      "request": {
+        "method": "GET",
+        "url": "https://expendablekmr.kugou.com/v2/author_image/audio",
+        "params": {
+          "hash": "B3A52A7A958BF0AED0EBFBA2E9A818B7",
+          "count": 100
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "length": 1,
+            "first": {
+              "author_id": "number",
+              "author_name": "string",
+              "is_publish": "number",
+              "res_hash": "string",
+              "avatar": "string",
+              "sizable_avatar": "string",
+              "audio_publish_date": "string",
+              "imgs": {
+                "2": {
+                  "length": 3,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "3": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "4": {
+                  "length": 15,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "5": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "6": {
+                  "length": 20,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "7": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                },
+                "8": {
+                  "length": 1,
+                  "first": {
+                    "id": "number",
+                    "file_hash": "string",
+                    "sizable_portrait": "string",
+                    "filename": "string",
+                    "publish_time": "string",
+                    "source": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "errcode",
+        "errmsg",
+        "data"
+      ],
+      "authors": [
+        {
+          "author_id": 3520,
+          "counts": {
+            "2": 3,
+            "3": 1,
+            "4": 15,
+            "5": 1,
+            "6": 20,
+            "7": 1,
+            "8": 1
+          },
+          "uniqueUrls": 42,
+          "examples": {
+            "2": "http://singerimg.kugou.com/uploadpic/softimage/20131104/20131104162445242.jpg",
+            "3": "http://singerimg.kugou.com/v2/singer_portrait/20141023/20141023121150664.jpg",
+            "4": "http://imge.kugou.com/v2/mobile_portrait/20260429151838447528.jpg",
+            "5": "http://singerimg.kugou.com/uploadpic/mobilehead/{size}/20250107/20250107160437485631.jpg",
+            "6": "http://imge.kugou.com/v2/mobile_super_portrait/20260429151830680160.jpg",
+            "7": "http://imge.kugou.com/v2/rank_portrait/50261e111da72f2594214094aa0d30fa.png_400x400.png",
+            "8": "http://imge.kugou.com/v2/banner_portrait/0ca8e884c088373be07a97afc5482822.png"
+          }
+        }
+      ]
+    },
+    {
+      "label": "android images_audio 100 second song",
+      "request": {
+        "method": "GET",
+        "url": "https://expendablekmr.kugou.com/v2/author_image/audio",
+        "params": {
+          "hash": "B04ED0F01ABBB62B9D22EC4616ED8AFE",
+          "count": 100
+        },
+        "dataFields": []
+      },
+      "status": 1,
+      "error_code": 0,
+      "shape": {
+        "status": "number",
+        "error_code": "number",
+        "errcode": "number",
+        "errmsg": "string",
+        "data": {
+          "length": 1,
+          "first": {
+            "length": 1,
+            "first": {
+              "author_id": "number",
+              "author_name": "string",
+              "is_publish": "number",
+              "res_hash": "string",
+              "avatar": "string",
+              "sizable_avatar": "string",
+              "audio_publish_date": "string",
+              "imgs": {}
+            }
+          }
+        }
+      },
+      "topFields": [
+        "status",
+        "error_code",
+        "errcode",
+        "errmsg",
+        "data"
+      ],
+      "authors": [
+        {
+          "author_id": 5737877,
+          "counts": {},
+          "uniqueUrls": 0,
+          "examples": {}
+        }
+      ]
+    },
+    {
+      "label": "android images_audio page2",
+      "error": {
+        "error_code": 20006,
+        "status": 502
+      },
+      "topFields": []
+    }
+  ]
+}

@@ -1,0 +1,300 @@
+# Kugou Lite
+
+Rust + Ratatui 酷狗概念版 TUI。Node.js 调用本地参考项目的酷狗接口；mpv 负责音频播放，通过 JSON IPC 控制播放、跳转、读取进度。当前使用独立 mpv 进程，没有嵌入 libmpv。
+
+Kotonoha 桌面歌词接入：在设置 → 歌词中开启“Kotonoha 桌面歌词”，默认向 `ws://127.0.0.1:28745/kotonoha/adapter` 发布完整歌词与实际播放校准。默认关闭，未启动 Kotonoha 不影响播放。配置、身份、时间偏移、真实协议验证与下一段开发事项见 [交接文档](docs/KOTONOHA_INTEGRATION.md)。
+
+## 启动
+
+要求：Node >=22.18、mpv、ffmpeg。重新编译需要 Rust/Cargo。
+
+```bash
+# 仅首次准备运行接口库（参考仓库不随本项目上传）
+node tools/clone-references.mjs --runtime-only
+# 安装接口依赖
+npm --prefix kgcheckin/api ci --ignore-scripts --no-audit --no-fund
+npm --prefix KuGouMusicApi ci --ignore-scripts --no-audit --no-fund
+# 本工作区已编译
+./tui/target/debug/kugou-lite
+# 修改 Rust 后重新编译运行
+npm run tui
+```
+
+无需另开 API 服务。启动自动恢复上次选择的账号，不需要每次扫码；只有凭证失效或添加其他账号时才按 L。
+
+登录试验现在统一使用本地 KuGouMusicApi 1.6.2 的扫码、设备注册和原生 v5 续期，暂不使用旧认证实现或失败回退；普通音乐业务接口保持原库。当前旧账号已按要求清空，请重新打开二进制按 L 扫码。新库入口已经真实返回等待扫码，但尚未验证登录能保持多久。全部候选登录接口、端点及验证范围见 [登录接口清单](docs/investigations/login-api-inventory.md)。
+
+## 操作
+
+| 按键 | 功能 |
+| --- | --- |
+| L | 扫码添加账号；重复登录同一账号会更新凭证 |
+| A | 已保存账号列表，方向键选择，Enter 切换 |
+| / | 输入搜索词，Enter 搜索，Esc 取消输入 |
+| ← / →（兼容 PgUp / PgDn） | 搜索结果、个人歌单列表、歌单歌曲上一页/下一页 |
+| ↑ / ↓，Enter | 选择并播放歌曲，或进入歌单/切换账号 |
+| P | 当前账号创建的歌单；N 切换到收藏的歌单 |
+| R / D | 推荐 / 发现，各有独立页面 |
+| N / T | 我的歌单切换创建/收藏；推荐或发现主页 N 切换歌曲/歌单；发现主页 T 打开排行榜 |
+| Backspace / G | 推荐、发现子页面返回栏目 / 刷新内容 |
+| [ / ] | 上一首 / 下一首 |
+| B | 查看当前播放队列，Enter 播放选中歌曲 |
+| Z | 当前歌单排序菜单；也可点击列表右上角的排序按钮 |
+| O | 顺序 / 列表循环 / 随机 / 单曲循环 |
+| S | 选择音质：默认 FLAC，可手动选择 320 / 128 kbps |
+| ← / →（播放页） | 后退 / 前进 10 秒 |
+| F | 将选中歌曲收藏到指定歌单：选择目标后 Enter 提交 |
+| Tab | 切换列表与正在播放页面 |
+| 空格 / X | 暂停或继续 / 停止 |
+| V / C | 查询概念会员权益 / 单次听歌活动领取 |
+| Esc | 返回上一页或关闭当前操作；扫码页返回进入前的页面 |
+| H / F2 | 返回主页并取消扫码等待 |
+| Delete | 账号页删除选中的本地账号，Y / Enter 确认，Esc 取消 |
+| Q | 退出（输入搜索词时 q 作为普通输入） |
+| ? / F1 | 设置分页；PgUp/PgDn 或 1–6 切分类，↑↓ 选择，Enter / 左右键修改 |
+| U | 左侧导航 / 顶部导航，两种布局切换 |
+| I | Kitty 高清封面 / 彩色方块封面 |
+| T | 显示 / 隐藏已有歌词译文 |
+| + / - | 音量增减 5%，范围 0–100%，重启保留 |
+
+每页条数跟随列表可用高度，尽量填满当前窗口；切换布局或调整高度后按新容量回到第一页。到最后一页保留现有结果。账号切换会停止播放并清空旧账号相关状态。收藏操作不自动重试；接口超时时先打开目标歌单核对，以免重复添加。
+
+歌曲编号跨页连续显示：每页 27 首时，第一页 1–27，第二页 28–54；适用于个人/公开歌单、排序结果、推荐/发现、搜索和播放队列。
+
+播放页默认在 Kitty 使用图像协议显示最高 600×600 的 PNG 封面；I 可切换到 32×32 彩色方块封面。非 Kitty 默认回退方块显示。窗口较窄时保留歌词空间并隐藏封面，建议侧栏布局使用至少 100 列。切页、缩放、关闭高清开关和退出时会清理本程序的 Kitty 图像。布局、封面模式、译文开关、音量保存到 `~/.config/kugou-lite/config.json`。
+
+歌词优先酷狗 KRC，提取原文及已有中文译文。T 控制译文显示，不会生成或伪造翻译。没有可用歌词时查询 LRCLIB，严格核对歌名、歌手和时长；外部歌词只有行同步时标明“LRCLIB · 行同步”，不伪造逐字时间。只把歌曲元数据发给 LRCLIB，不发送账号凭证。缺少译文时只显示原文。
+
+## 多账号保存
+
+- `.local/accounts.json`：多账号凭证及当前选择，600 权限，所在目录 700。
+- 旧 `.local/account.json` 会在启动时迁移，保留旧文件以兼容，不删除账号。
+- 切换账号和重新扫码均保存到多账号文件；VIP/播放验证命令也使用当前选择。
+- 文件损坏时提示错误，不静默覆盖；并发修改使用目录锁，避免两个窗口丢失账号。
+- 这些是本地凭证文件，已在 `.gitignore` 中排除。界面显示用户名与用户 ID 尾号，不输出 token。旧账号缺少用户名时后台查询并缓存，失败时显示“用户名待同步”；该账号仍可切换，不会被删除或要求重登。
+
+## 验证 VIP 与播放
+
+```bash
+node tools/vip-probe.mjs --direct
+node tools/vip-probe.mjs --direct --claim
+npm run playback:probe -- "周杰伦 晴天"
+```
+
+播放验证现在启动即显示阶段：读取账号/校验登录 → 搜索 VIP 曲目 → 获取播放地址 → 完整解码。每次接口请求有 20 秒独立等待上限，解码最多 180 秒，每 5 秒提示仍在工作。默认请求 FLAC，优先使用搜索结果中的 SQ hash。播放前用 ffprobe 检查实际编码，接受 FLAC/ALAC/APE/WavPack，无损检查失败时不自动降级。URL 后缀不作为判定依据，界面显示检查得到的编码和采样率。解码验证不保存音频文件，也不输出签名 URL。
+
+报告在 `.local/vip-latest.json` 和 `.local/playback-latest.json`。验证选择明确 VIP 标记的歌曲，完整解码后比较搜索元数据时长，防止把试听地址当成完整播放。单首测试成功不代表全部歌曲可用。未实际运行成功的探测不能显示为通过。
+
+## 已验证与限制
+
+用户已确认本机成功扫码及播放 VIP 音乐。2026-10-04 的权益查询返回 svip/tvip 生效；当天领取返回 130012（已领取），前后到期时间相同，因此不算本次新增权益。每日自动领取尚未启用，需要跨天验证活动是否持续适用。
+
+本轮已验证：旧账号真实迁移、TUI 启动自动恢复和账号选择入口、Rust 编译；离线测试覆盖多账号持久化/损坏保护、分页参数、歌单映射、收藏参数、KRC 时间轴、封面歌词渲染、会员结果判断及实际 ffmpeg 解码。
+
+早期验收遇到网络和 IPC 沙箱限制；当时保存凭证的歌单与会员请求返回 20017。这是历史结果，最新验证范围见 STATUS.md；离线界面检查不代表所有云端接口均可用。
+
+```bash
+npm test
+cargo test --manifest-path tui/Cargo.toml
+```
+
+## 参考
+
+- [kgcheckin](https://github.com/develop202/kgcheckin)：登录、活动及 API 模块（API 子目录 MIT）。直接引用本地模块，保留原仓库。
+- [kugou-tui](https://github.com/sijin-xb/kugou-tui)：Rust TUI 与概念版客户端参数参考。
+- [EchoMusic](https://github.com/hoowhoami/EchoMusic)、[MoeKoeMusic](https://github.com/MoeKoeMusic/MoeKoeMusic)：核对接口字段、歌单和权益模型。
+- [go-musicfox](https://github.com/go-musicfox/go-musicfox)：终端播放器交互参考。
+
+`npm run references` 识别工作区已有参考仓库，并将版本记到 `references/manifest.json`。
+
+## UI 与音质更新验证
+
+新测试覆盖：KRC 翻译解析、LRCLIB 精确匹配及不携带账号信息、FLAC/SQ 请求参数、真实 FLAC 文件改成 `.mp3` 后仍识别为 FLAC、音量边界及 mpv 命令、用户名并发保存/重登保留、Kitty 分块传输及控制字符过滤。Rust 两种布局和译文开关由内存终端测试验证。
+
+在线 FLAC 获取、第三方歌词匹配、Kitty 真机高清效果仍需本机验收；当前环境不能替代你的 Kitty 和网络。用户此前确认的 VIP 播放是旧 128 请求版本，不应据此宣称新 FLAC 已实测通过。
+
+协议依据：[Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/)、[LRCLIB API](https://lrclib.net/docs)。
+
+## 自适应列表、频谱与桌面控制
+
+播放页宽度足够时依次显示封面、歌词、CAVA 输出频谱；窄窗口优先保留歌词。封面下使用简洁唱片图案，不再重复展示音量、播放模式或连接状态；编码、采样参数、码率和音量统一位于最底部状态栏。`+` / `-` 每次调节 5%，音量通过 mpv 的软件音量实现（0–100%），保存在 `~/.config/kugou-lite/config.json`；桌面调音量也同步保存。音频流名称为 `Kugou Lite`。
+
+CAVA 使用真实的 PulseAudio/pipewire-pulse 默认输出监视器，60 帧/秒、48 个频段；其他应用的声音也会进入该输出频谱。暂停、停止时频谱平滑回落至静音并退出 CAVA；播放时重新启动。不修改用户 CAVA 配置。缺少 CAVA 或音频输入不可用时显示提示，播放器仍可使用。
+
+MPRIS 服务为 `org.mpris.MediaPlayer2.kugou_lite`，支持播放、暂停、停止、当前页播放队列的上一首/下一首、歌曲信息、进度读取、独立音量。翻页或搜索不会替换已经开始播放的队列；选择新歌时才替换。支持桌面拖动进度（SetPosition）、相对跳转（Seek）、实际跳转完成通知（Seeked），拒绝过期歌曲的跳转请求。封面以本地 PNG 的 `mpris:artUrl` 发布，下载完成后通知桌面更新；缓存最多保留 64 张。播放模式通过 LoopStatus / Shuffle 同步。只注册一个主实例，第二个窗口无法注册时会提示，但仍可播放。需要桌面会话 D-Bus，以及 Python 的 `dbus`、`gi` 模块；本机已安装这些依赖和 CAVA。
+
+在播放器运行时可用：
+
+```bash
+playerctl -p kugou_lite play-pause
+playerctl -p kugou_lite next
+playerctl -p kugou_lite volume 0.5
+playerctl -p kugou_lite metadata
+```
+
+测试：`npm test`、`python tests/mpris_test.py`、`cargo test --manifest-path tui/Cargo.toml`。CAVA 原始帧输出已用本地输入验证；当前沙箱禁止创建 D-Bus socket，桌面控制与真实输出监视器仍需在桌面会话验收。
+
+协议依据：[MPRIS Player](https://specifications.freedesktop.org/mpris/latest/Player_Interface.html)、[CAVA 配置](https://github.com/karlstav/cava/blob/master/example_files/config)。
+
+## 推荐、发现与播放控制
+
+`R` 直接打开酷狗每日推荐歌曲，`N` 切换到推荐歌单，再按 `N` 返回歌曲。`D` 直接打开新歌速递，`N` 在新歌与 Hi-Res 精选歌单之间切换，`T` 打开排行榜。分类按钮支持鼠标点击。歌曲列对齐歌名、歌手、VIP 和时长；精选歌单采用两行卡片，显示标题、曲数与简介。`↑↓` 选择、`Enter` 打开或播放，`←→` 翻页，`Esc` / `Backspace` 返回上级，`G` 刷新。每日推荐和榜单目录在本地分页，切换账号时清空推荐缓存；公开歌单使用 global collection ID 打开，与个人歌单接口分开处理。接口异常会显示错误，不会使用虚构的推荐内容。
+
+进入个人、收藏、推荐或发现歌单后，导航右侧增加“歌单档案”框，上部显示封面，下部显示歌单名称、创建者、曲数、标签和简介。Kitty 使用高清封面，关闭高清或其他终端使用彩色方块；宽度不足时隐藏档案框以保留歌曲空间。优先显示列表已有资料，详情和封面后台补充，不阻塞歌曲读取；接口未提供的资料显示缺省说明，旧页面的迟到响应不会覆盖当前歌单。
+
+播放队列是选择歌曲时所在页的快照。`B` 查看队列；`[` / `]` 切歌，歌曲正常播完自动按 `O` 选择的模式续播。顺序模式到末尾停止，列表循环回到开头，随机模式尽量不连续重复同一首，单曲循环重复当前曲目；手动切歌仍可离开单曲循环中的当前曲目。当前队列限于已加载的这一页。
+
+`S` 切换音质时重新获取地址、检测真实编码，并从切换时的位置继续（已暂停则保持暂停）。音质偏好和播放模式与 UI 设置一起保存。默认 FLAC 仍严格要求无损；只有明确选择 320 / 128 时允许有损编码，显示的是实际编码、采样率、有效位深或码率，服务端返回值不一定等于请求档位。命令行 `playback:probe` 仍执行默认的无损验证。
+
+歌单接口的 `歌手 - 歌曲.mp3` 是显示文件名，与重新请求的播放流无关。界面现在清理末尾音频扩展名及重复歌手前缀；这不会转码，也不会把 MP3 标记为 FLAC。
+
+MPRIS 验收示例（启动播放器并播放歌曲后）：
+
+```bash
+playerctl -p kugou_lite position 60
+playerctl -p kugou_lite position 10+
+playerctl -p kugou_lite metadata mpris:artUrl
+playerctl -p kugou_lite loop Track
+playerctl -p kugou_lite shuffle On
+```
+
+推荐、发现已完成接口接线和离线响应结构测试；页面、分类切换及歌单详情使用模拟响应做界面回归。本轮另已用真实账号只读请求验证推荐目录 40 个、Hi-Res 目录 29 个歌单全部获得正数曲数；真实屏幕观感仍待验收。
+
+## 鼠标、底栏与显示设置
+
+底栏固定显示歌曲名、歌手、实际音质、已播放/总时间。上一首、播放/暂停、下一首、音量、播放顺序、队列、音质和设置均可点击。进度条支持按下拖动预览位置，松开后跳转；拖出横向范围会限制在首尾。切歌或改变窗口大小时取消未完成的拖动，避免误跳到新歌。
+
+导航、主页入口卡片、列表歌曲、歌单、账号和翻页按钮支持鼠标。单击列表行直接打开或播放，滚轮移动列表选中项。首次登录或 token 失效时，有可点击的扫码入口。关闭鼠标操作后，可通过 `?` / `F1` 重新开启；退出程序会恢复终端鼠标状态。
+
+歌词区域滚轮上下浏览，默认静置 6 秒自动回到当前播放行，单击歌词区域可立即归位。设置页可调整归位时间（3–15 秒）、布局、高清封面、译文、鼠标、图标缩放、播放模式、请求音质、音量和 CAVA 样式。快捷键帮助较长时，鼠标移到帮助区滚动，或使用 PgUp/PgDn 翻阅。所有配置自动保存。
+
+Kitty 下导航及播放控制的 Nerd Font 图标使用 OSC 66 放大到 2 倍（本机 Kitty 0.49.2 支持）；其他终端保留标准大小。设置里可关闭放大。图标区域跳过常规终端绘制，仅在图标、位置或背景变化时更新，避免反复擦除引起闪烁；切页及缩放清理旧位置。不修改 Kitty 的全局字体设置。协议参考：[Kitty text sizing](https://sw.kovidgoyal.net/kitty/text-sizing-protocol/)。
+
+CAVA 提供极光柱状、镜像频谱、点阵丝带、环形脉冲四种样式，均使用实际 CAVA 输出数据，不生成随机动画。封面下方为低对比度唱片装饰，歌词及频谱有各自的区域。
+
+## 我的歌单报错 20017
+
+用户确认错误发生在按 P 请求歌单列表时。本地参考项目 `kugou-tui/src/error.rs` 记录 `/user/playlist` 的 20017 为登录 token 无效或过期。扫码成功后保留新凭据，不立即强制轮换；持久保存设备标识、vip_token 和续期返回的 t1；新账号接入上游 v5 续期协议，旧账号保留 v4 兼容。每 15 分钟检查一次维护需求，距离上次成功续期超过 6 小时才发起续期，失败冷却 5 分钟。受支持的只读请求遇到20017先延迟1秒，读取磁盘当前凭据复查，再决定是否续期；其他登录拒绝也尝试恢复。6小时是维护策略，不是已验证的服务端有效期。新扫码时间、成功读取时间和确认拒绝时间分别记录，续期不修改扫码时间。续期通过证书有效的 `https://gateway.kugou.com` 发送，以 `x-router: login.user.kugou.com` 指定服务，验证返回账号一致后更新凭证，再重试原请求。续期被拒绝或没有恢复时提供重新扫码入口，保留所有已存账号。并发续期合并为一次；请求先读取磁盘最新凭证，避免使用另一窗口已替换的旧 token。临时 DNS/连接/超时错误仅对只读请求重试两次，不自动重试收藏、领取及可能已经完成的 token 轮换操作。账号锁可以恢复上次异常退出遗留的失效锁。
+
+歌单实体另外保留个人 listid、全局 collection ID 与创建者信息，收藏歌单优先使用全局入口，避免丢失标识。20017 不再通过切换歌单接口来绕过。
+
+离线测试覆盖了续期成功/失败/账号不匹配、凭证保存与请求次数，鼠标点击区域、进度边界、小窗口布局和四种频谱响应。模拟终端使用虚拟播放数据检查实际输入事件，不代表真实音频后端的在线验收；真实桌面音频效果仍需本机验收。若服务端已撤销 token 且续期拒绝，必须由账号持有人扫码确认，软件无法代替这一步。
+
+账号页 Delete 或点击“删除选中”打开确认，Y / Enter 或点击确认后删除本机保存的该账号。删除当前账号时停止其播放并选中剩余账号；删除其他账号不会中断当前播放。删除最后一个账号回到未登录状态，也清理对应的旧 account.json，避免旧凭证被再次迁移。
+
+2026-10-04 在线验收：无凭据 DNS 与限时 HTTPS 检查确认 gateway.kugou.com 和 kugouvip.kugou.com 可达且 TLS 校验通过。login.user.kugou.com 的证书仅覆盖 *.kugou.com 等名称，直接 HTTPS 会报 ERR_TLS_CERT_ALTNAME_INVALID；已使用网关路由修正续期入口。保存账号的歌单与会员查询均返回业务码 20017，单次续期也未恢复，没有删除或覆盖原 token。该结果是服务端登录拒绝，不是当前网络受限。
+
+可重复验证：`node tools/network-check.mjs`（不发送账号凭据）；网络检查通过后 `node tools/session-probe.mjs`（只读歌单和会员）；加 `--refresh` 尝试一次凭证续期。`python tests/ui_smoke.py` 使用虚拟 worker 验证图标不重复绘制、扫码 Esc 返回、删除取消/确认与鼠标播放控制。新API只读对照使用 `--api=modern`，连续观察使用 `--samples=3 --interval=10`；生产默认库未切换。最新实测及有效期限制见 [登录稳定性检查](docs/investigations/session-stability.md)。协议依据：[KuGouMusicApi v5 续期实现](https://github.com/MakcRe/KuGouMusicApi/blob/main/module/login_token.js)。
+
+播放页频谱改为 48 频段 / 60 FPS 输入，显示时按实际经过时间平滑过渡（快速响应、缓慢回落），并保留自然衰减的峰值。播放页目标绘制 60 FPS，等待时间扣除绘制开销；其他页面仍低频刷新。Kitty 每帧同步提交，减少图案撕裂，图标继续按变化更新。柱状使用八分之一行高度，镜像/丝带/环形使用 Braille 的 2×4 子像素，频段之间做连续插值；环形修正终端字符比例。宽窗口下频谱从固定 24 列改为剩余空间的 45%，范围 30–64 列，保留歌词空间；窄窗口仍优先显示歌词。
+
+
+## JSON 配置与独立主题
+
+默认目录为 `~/.config/kugou-lite/`，设置了 `XDG_CONFIG_HOME` 时遵循该目录。
+
+- `config.json`：布局、鼠标、封面、歌词、音量、音质、播放顺序和 CAVA 设置。
+- `theme.json`：当前主题，独立于配置，包含 `id`、`name` 和八个 `#RRGGBB` 颜色角色。
+- `themes/<主题名>.json`：23 个预设和导入的自定义主题。启动时补齐缺少的预设，不覆盖已有文件；设置中的主题菜单可选择和预览所有已加载主题。
+
+首次启动迁移旧 `.local/ui.json` 的界面设置，保留旧文件。账号凭证仍单独保存在 `.local/accounts.json`，不会包含在配置或主题导出中。配置错误会明确报错；无效导入不会覆盖原配置或当前主题。文件写入通过同目录临时文件替换，避免中断留下半份 JSON。文件操作完成后直接退出，不启动账号接口进程。
+
+```bash
+./tui/target/debug/kugou-lite --export-config /tmp/config.json
+./tui/target/debug/kugou-lite --import-config /tmp/config.json
+./tui/target/debug/kugou-lite --export-theme /tmp/theme.json
+./tui/target/debug/kugou-lite --import-theme /tmp/theme.json
+# 可选：指定其他配置文件；主题仍使用默认主题目录
+./tui/target/debug/kugou-lite --config ./custom-config.json
+```
+
+编辑导出的主题时修改 `id`、`name` 与 `colors`，再导入。导入会保存为 `themes/<name>.json` 并设为当前主题；重启生效。也可以退出后直接编辑当前 `theme.json`。颜色角色为 `background`、`foreground`、`muted`、`border`、`surface`、`accent`、`secondary`、`warning`，统一控制导航、顶栏、图标、歌词、进度条与 CAVA。
+
+原有 15 个配色：Kugou Jade、Catppuccin Mocha/Macchiato/Frappé/Latte、Rosé Pine/Moon/Dawn、Tokyo Night/Storm/Moon、Nord、Dracula、Gruvbox Dark/Light。颜色参考上游 [Catppuccin](https://github.com/catppuccin/palette)、[Rosé Pine](https://github.com/rose-pine/palette)、[Tokyo Night](https://github.com/folke/tokyonight.nvim)、[Nord](https://www.nordtheme.com/docs/colors-and-palettes/)、[Dracula](https://draculatheme.com/contribute)、[Gruvbox](https://github.com/morhetz/gruvbox)，按本程序语义角色映射，部分浅色提示色做了对比度调整。
+
+播放歌词数量由区域高度自动决定，取消固定 10 行；原文和译文成组，条目之间留出空行。Kitty 中普通歌词约 1.5 倍、非当前译文使用紧凑标准字号，开启当前歌词放大时原文及译文均为 2 倍；窄小窗口自动收紧。当前条目靠近歌词区域中间，设置可选靠左/居中/靠右及当前原文、译文放大。支持文字尺寸协议的 Kitty 使用两倍文字；其他终端用加粗强调。底栏歌名右侧显示当前原文与译文。极光柱状不再绘制峰值横杠，环形增加内圈并扩大半径。设置页保留方向键编辑，并响应搜索、页面切换与播放等全局快捷键。
+
+本轮验证：`cargo test --manifest-path tui/Cargo.toml`、`python tests/config_smoke.py`、`python tests/ui_smoke.py`、`python tests/lyrics_smoke.py`。终端与配置检查使用临时目录，不修改账号数据。
+
+
+侧栏与顶栏各板块的图标、文字使用当前主题的强调色、辅助色与提示色派生不同色调；选中项加粗，并显示对应色的左侧标记和柔和底色。`theme.json` 的 `navigation` 可为每个板块独立指定文字/图标色和选中底色。
+
+
+歌词新增约 360ms 的缓动滚动，播放换行、鼠标浏览及自动归位沿连续目标位置过渡，边缘文字淡入淡出；Kitty 分数字号在终端网格内调整垂直对齐。英文按完整单词着色，避免高亮把首字母切成独立缩放块；中文保留逐字高亮。原文与译文均使用粗体，长句自动换行，英文优先在单词边界断行，超长单词允许跨行。设置新增「歌词字号缩放」开关，对应 `config.json` 的 `scale_lyrics`；关闭后用标准字号，保留粗体、换行和滚动。已有「当前歌词放大」只控制当前行的额外强调。歌词布局缓存后仅更新当前时间高亮；开发构建为播放器和 TUI 依赖开启优化，以保持动画刷新速度。
+
+
+## 状态栏与完整主题字段
+
+参考本地 [voicefox](https://github.com/emoeem/voicefox) 的可点击信息段和分类设置布局，独立实现本程序的底栏：播放按钮、歌曲、实际音质、实时码率、音量、顺序、队列与时间按配置排列。状态信息固定在窗口最底部，歌词与译文位于上方，进度条位于状态信息上方，原来的队列/音质/设置/主页按钮排和提示行已移除；提示消息放在顶栏，原文与译文可作为独立状态栏板块显示。窄屏放不下的段用「⋯」入口引导到状态栏设置。
+
+设置分为「外观」「歌词」「播放」「状态栏」「快捷键 / 配置」「通知」，宽屏左侧分类，窄屏顶部分类；PgUp/PgDn、数字 1–6 或鼠标可切换。状态栏页 Enter 显示/隐藏板块，Shift↑↓ 调整已启用板块顺序，行数可选 1–3。配置分别保存为 `status_items`（按顺序的板块 ID）和 `status_rows`。鼠标点击播放控制、音量、歌曲、音质、顺序和队列直接执行对应操作。
+
+实时码率读取 mpv `audio-bitrate` 的数据包码率，单位转换为 kbps；它是播放器计算的近期数据包估计值，不是网络下载速率，也不使用 ffprobe 的文件平均码率冒充。未获取时显示「—」，停止/换歌时清空。[mpv 属性说明](https://mpv.io/manual/stable/#property-list)。本地 FLAC 播放已实测回传码率，停止时归零。
+
+主题导出现在使用版本 2，并补齐以下独立区域，所有颜色都是 `#RRGGBB`：
+
+| 字段 | 可配置内容 |
+| --- | --- |
+| `colors` | 原有 8 个基础色 |
+| `navigation` | `background`、`border`，以及每个板块的 `color` / `selected_background` |
+| `panels` | home/search/playlists/accounts/playing/queue/recommend/discover/settings 的 `background` / `border` / `title` |
+| `header` | `background` / `text` / `accent` / `border` |
+| `status` | `background` / controls/song/quality/bitrate/volume/mode/queue/time/lyrics/translation/separator/more |
+| `progress` | 未播放轨道 `track`、已播放部分 `played`、拖动点 `thumb` |
+| `cover`、`lyric_panel` | 封面信息和歌词面板的 `background` / `border` / `title` |
+| `visualizer` | 渐变 `low` / `high`，以及 `background` / `border` / `title` |
+| `lyrics` | `completed` 当前行已唱内容、`past` 已播放整行、`word` 正在唱的字/词、`pending` 当前行待唱内容、`upcoming` 后续行、`translation` 当前译文、`inactive_translation` 非当前译文 |
+
+旧主题自动补齐新字段，保留原有颜色和额外字段；15 个预设同时升级。直接编辑文件后重启，或使用 `--import-theme` 导入。英文高亮以完整单词为单位，中文按字区分已唱、正在唱和待唱。非当前歌词去掉额外空行，译文紧贴原文，缩放与自动换行功能保留。
+
+## 通知
+
+参考 voicefox 的分层通知交互：软件内右上角显示最多三条通知，点击关闭，自动到期；相同消息十秒内去重，切歌替换上一条。登录、收藏、账号操作、会员结果和错误会通知，时间进度与音量更新不会刷屏。
+
+按 `?` 后按 `6` 打开通知设置，可分别开关软件内、Linux 桌面、切歌通知，以及设置 1–30 秒显示时间。配置字段为 `in_app_notifications`、`desktop_notifications`、`track_notifications`、`notification_timeout`，导入导出方式与其他配置相同。`theme.json` 的 `notifications` 包含 background、text、info、success、warning、error 六种颜色。
+
+Linux 桌面通知通过 libnotify 的 `notify-send` 接入当前用户的 `org.freedesktop.Notifications` 服务（Arch：`libnotify`，桌面需运行 Noctalia、mako 或其他通知服务）。后台发送，三秒超时，切歌桌面通知使用 replacement ID，不堆积旧歌曲；桌面服务不可用时仅显示一次软件内提示，播放继续。通知不会包含登录凭证。
+
+底栏主题颜色独立位于 `theme.json` 的 `footer`：background、lyrics、translation、elapsed、duration；状态信息仍使用 `status`，进度轨道仍使用 `progress`。进入个人歌单、推荐或发现的子页面后，Esc 返回会恢复上级页码、选中项和滚动位置。放大歌词按 Kitty 协议固定 multicell 的实际宽度；清理旧文字时保持中文宽字符完整，避免缩放图标或歌词滚动擦掉相邻文字。
+
+歌词按“原文＋译文”组成一组，组内紧贴，组间保留一行空白；非当前原文和译文使用相同的紧凑字号。歌词左右保留安全内边距，并在歌词与 CAVA 之间留出两列间隔，换行和鼠标滚动共用相同的内容区域。
+
+在设置的外观页选中“颜色主题”，按 Enter、Space 或鼠标点击打开主题菜单：方向键和滚轮即时预览，PgUp/PgDn 翻页，Enter 或“应用”保存，Esc 或“取消”恢复原主题。菜单同时列出主题名称和色板，并包含导入的自定义主题。新增深海、夜樱、暖纸、薄荷、石墨、紫霞、苔林、素墨八套主题，共 23 套。
+
+## 歌单排序
+
+所有进入的个人歌单、收藏歌单、推荐和发现的公开歌单，以及排行榜歌曲列表均显示“排序[Z]”按钮。支持十种方式：默认顺序、默认倒序、歌名正序/倒序、歌手正序/倒序、时长正序/倒序、VIP 优先和随机排列。菜单 ↑↓ 选择，Enter 应用，Esc 取消；也可直接鼠标点击选项。
+
+首次排序通过已有账号接口分批读取整份歌单，再排序并分页；不会只对当前页排序，也不会修改服务端歌单。后续排序与翻页使用有限内存缓存，随机排列在翻页时保持不变，G 刷新会重新读取。已排序歌单开始播放时，将完整排序结果作为播放队列，选中歌曲、上一首/下一首和 MPRIS 使用相同顺序。切换账号会清空缓存。读取失败、分页异常或未读取完整时保留原列表；最多读取 200 页，并限制读取时间，避免异常接口无限循环。
+
+## 搜索模式与封面缩放恢复
+
+设置 → 外观 → 搜索界面，可切换「简约 · 顶栏」与「丰富 · 独立界面」。配置字段 `rich_search` 为布尔值，默认开启。按 `/` 打开搜索：简约模式使用顶栏；丰富模式显示独立输入卡片，标题下的引导语每次打开都会更换；未输入时下方分为「搜索灵感」和带序号的「酷狗热搜」两块，都支持点击搜索。结果页也保留独立搜索卡片。
+
+丰富搜索输入停顿 180ms 后查询公开建议接口，最多提供 16 条，Kitty 下以两倍粗体显示，条目间留一行间隔，宽窗口采用双列；高度不足时随选择滚动，全部建议仍可到达。↑↓ 选择，Tab 补全后继续编辑，Enter 搜索，鼠标点击建议直接搜索。旧输入的迟到结果不会覆盖新输入；建议请求不占用主操作通道，最多一个在途请求并合并新的输入。建议失败时仍可直接搜索，不触发账号重登。
+
+推荐/Hi-Res 目录本身可能省略曲数或返回占位 0，因此通过 `/playlist/detail` 分批读取真实曲数，每批最多 10 个 ID；实测一次 20 个会返回业务码 20010。详情缓存随账号切换、刷新清理；无法读取详情时保留目录并显示未知，不把播放次数当曲数。
+
+Kitty 封面在窗口尺寸变化时清除旧显示缓存并重新上传；布局稳定后延迟约 220ms 补绘一次，覆盖全屏进出、位置没变但终端已清除图像的情况。已通过 PTY/Kitty 解析器的四次窗口缩放检查，Hyprland 实际全屏仍需实机确认。
+
+热搜使用公开 `/search/hot`，按官方热搜榜顺序取前 20 条，窗口根据可用空间显示前若干项，缓存 10 分钟；失败时明确显示暂不可用，不用灵感词冒充热搜。个人歌单先完整读取混合目录，再区分创建/收藏并各自分页；按 `N` 或点击分类栏切换，`G` 刷新目录，进入歌单后 `Esc` 返回原分类和选中项。歌曲收藏目标只显示可写的创建歌单。
+
+封面支持酷狗 `kugou.com` / `kugou.net` 和 `kgimg.com` 图片 CDN；优先选择歌单图片而非上传者头像，跳过空的图片字段。
+
+
+## 分类搜索与歌手主页
+
+搜索结果按 `N` 或点击分类栏，在歌曲、歌单、专辑、歌手之间切换；方向键选择，Enter 播放歌曲或打开条目，左右键翻页。搜索到的公开歌单沿用歌单详情和 `Z` 排序功能。Esc 返回上级，恢复分类、页码和选中位置；`H` / `F2` 返回主页。
+
+歌手主页左右分栏：左侧照片、生日、粉丝和作品数，右侧用 `N` 或鼠标切换热门单曲、单曲和专辑。逗号 `,` / 句号 `.` 切换接口提供的照片，`I` 仍切换高清/方块图像。`J` 打开歌手资料，默认基本资料；`N`、左右键、数字 `1–5` 或鼠标切换简介、基本资料、演艺经历、主要作品、荣誉记录。上下键、PgUp/PgDn 或滚轮浏览长文，Esc 返回歌手主页。
+
+单曲按接口 `sort=hot` 的热门顺序读取、缓存及分页，不用缺失的播放量计算占比。歌手页已移除认证说明、累计收听人数和守护人数。歌手搜索结果的名称左侧显示头像：Kitty 高清模式为图片，关闭高清或其他终端使用方块缩略图；每项三行，后台最多并行加载三项，并缓存最多48张头像。翻页、返回及页面切换会忽略旧图片响应，高清头像与主封面使用独立图片ID。当前照片数量仍以已接入接口实际返回为准。
+
+新增检查：`node --test tests/catalog.test.mjs`、`python tests/catalog_ui_smoke.py`。`node tools/catalog-runtime-probe.mjs` 为公开接口只读检查，先运行 `node tools/network-check.mjs`；不恢复账号、不领取权益、不触发音乐播放。
+
+
+歌单目录每个条目左侧显示封面，适用于创建/收藏歌单、推荐/发现、排行榜、搜索歌单及收藏歌曲时选择目标歌单。条目采用三行布局，右侧显示名称、曲数及简介，每页数量随窗口高度适应。`I` 或设置中的高清开关切换 Kitty 图片与方块封面；无可用封面时显示占位符。下载在后台进行，翻页、分类切换和返回后不会用旧请求覆盖当前目录。
+
+歌手页面的「专辑」分类及搜索专辑结果也显示左侧专辑封面，支持同一高清／方块切换。进入专辑后，左侧档案保留封面和专辑信息。
+
+歌手名片照片按原图比例缩放并居中，高清和方块模式均随窗口大小适配；终端可提供像素尺寸时使用实际字符单元比例。
