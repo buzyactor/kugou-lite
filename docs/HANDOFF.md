@@ -6,7 +6,7 @@
 
 - 工作区：`/home/wolf/Kugou Lite`。保持Rust TUI，不改成网页或普通桌面播放器。
 - 本次开始前根仓库干净，分支main；HEAD为`43eb1de3a9bc2a4789bea604d3fa24c143b8383e`。随后本交接会单独提交，接手仍要重新运行git status/log。
-- origin：`https://github.com/buzyactor/kugou-lite.git`，用户明确选择私有。2026-10-05已创建并推送；源码Release为`https://github.com/buzyactor/kugou-lite/releases/tag/snapshot-20261005`，含源码tar.gz与SHA-256，不含二进制、API克隆或账号数据。本次更新会同步main，不替换历史Release。
+- origin：`https://github.com/buzyactor/kugou-lite.git`，最初创建为私有，用户2026-10-06已改为public（公开）。2026-10-05已创建并推送；源码Release为`https://github.com/buzyactor/kugou-lite/releases/tag/snapshot-20261005`，含源码tar.gz与SHA-256，不含二进制、API克隆或账号数据。本次更新会同步main，不替换历史Release。
 - 已有可运行二进制：`tui/target/debug/kugou-lite`。本轮实际检查文件存在，26032744字节，mtime为2026-10-05 18:38；后续Node逻辑在运行时从本工作区读取，因此mtime不代表全部Node代码的更新时间。不是脱离仓库与运行依赖的单文件发行物。
 - 2026-10-06实际环境：Node v26.10.0、Rust 1.99.0；系统GitHub CLI在`/usr/bin/gh`。**旧/tmp/kugou-github/gh和/tmp/kugou-cargo已不存在**；不要照抄历史命令强制CARGO_HOME到被清理目录。
 - 本次没有读取账号文件或验证当前登录；2026-10-05清空账号是历史操作，不能据此断言用户现在仍未登录。不要为了接续再次清账号或轮换token。
@@ -15,7 +15,7 @@
 ## 2. 用户约定（必须保留）
 
 1. **用户只打开已编译二进制**。应用修改后由开发者完成相关测试并编译好，不能让用户自行编译。纯文档变更不需要重新编译播放器。
-2. 后续每完成一批修改、检查通过并审查diff后，适时提交和推送私有GitHub仓库。用户已持续授权同步，不需要重新询问是否上传；工具沙箱授权与GitHub认证仍按当前环境处理。同步失败明确说明原因并给手动步骤，不能把本地commit写成上传成功。
+2. 后续每完成一批修改、检查通过并审查diff后，适时提交和推送GitHub仓库（当前public）。用户已持续授权同步，不需要重新询问是否上传；工具沙箱授权与GitHub认证仍按当前环境处理。同步失败明确说明原因并给手动步骤，不能把本地commit写成上传成功。
 3. 先核对git status、保护已有未提交工作，不擅自reset/stash/覆盖。参考项目的修改属于独立仓库，不能误加入根仓库。
 4. 账号凭据、token、cookie、二维码key、签名播放URL不进日志、文档或Git；不让用户把token发聊天。不为写交接读取凭据内容。真实账号调试仅按用户授权目的读取，输出只用脱敏字段。
 5. 线上验证先对**实际hostname**做无凭据DNS和带超时HTTPS/TLS测试，成功再查询歌单/会员。失败报hostname、错误码和确认到的网络限制，不笼统归因DNS，也不为沙箱网络限制重构播放器。
@@ -140,7 +140,7 @@ Kotonoha协议检查：`python tools/check-kotonoha.py`，需要当前本地Koto
 - 用户配置默认`~/.config/kugou-lite/config.json`（支持XDG_CONFIG_HOME和--config）；theme.json独立且预设按主题名存放，支持单独导入/导出。旧.local/ui.json是迁移来源。
 - `.local/accounts.json`/device.json为私有，目录700/文件600；旧account.json可迁移。损坏不会静默覆盖；清空工具是显式破坏性重置，不作为常规恢复方法。
 - `.gitignore`排除.local、API/参考克隆、tui/target、node_modules、Python缓存、.env、.aws/.codex/.agents和dist。源码包不是可直接运行的预装二进制发行物。
-- 用户要求定期同步，当前目标始终私有buzyactor/kugou-lite/main，不能默认改公开或创建别的仓库。先审查改动与忽略规则，只提交任务文件，确认远端与本地一致再报告上传成功。
+- 用户要求定期同步，当前目标为公开buzyactor/kugou-lite/main，公开是用户自行设置；不擅自更改可见性或创建别的仓库。先审查改动与忽略规则，只提交任务文件，确认远端与本地一致再报告上传成功。
 
 开发者/用户手动同步示例，替换提交说明：
 
@@ -154,8 +154,8 @@ git commit -m "docs: update development handoff"
 git push origin main
 ```
 
-只有需要时`gh auth status`或`gh auth login --hostname github.com --git-protocol https --web`；正式gh现位于/usr/bin/gh，旧临时路径失效。登录由用户在官方浏览器授权，不收集密码/token。没有gh时用户可`sudo pacman -S github-cli`安装；这不是开发者未经授权自动安装系统包的指令。
+只有需要时`gh auth status`或`gh auth login --hostname github.com --git-protocol https --web`；正式gh现位于/usr/bin/gh，旧临时路径失效；本仓库凭据助手改用系统gh，避免全局旧路径导致推送失败。登录由用户在官方浏览器授权，不收集密码/token。没有gh时用户可`sudo pacman -S github-cli`安装；这不是开发者未经授权自动安装系统包的指令。
 
 ## 10. 给新工作对话的入口消息
 
-> 工作区是/home/wolf/Kugou Lite。请先读docs/HANDOFF.md、STATUS.md、README.md及适用AGENTS，核对git状态、源码和相关测试，不依赖旧聊天。保持Rust TUI；应用修改后由你测试并编译，用户只打开二进制；完成一批修改后同步私有buzyactor/kugou-lite。当前核心未决是KuGouMusicApi单一登录链路的真实保持时间，不混用旧认证，不自动再次清账号。Kotonoha在另一对话开发，先核对它实际HEAD/未提交工作与旧协议交接，不覆盖它的改动。优先处理用户新的反馈，测试与实机验收分开报告。
+> 工作区是/home/wolf/Kugou Lite。请先读docs/HANDOFF.md、STATUS.md、README.md及适用AGENTS，核对git状态、源码和相关测试，不依赖旧聊天。保持Rust TUI；应用修改后由你测试并编译，用户只打开二进制；完成一批修改后同步公开buzyactor/kugou-lite。当前核心未决是KuGouMusicApi单一登录链路的真实保持时间，不混用旧认证，不自动再次清账号。Kotonoha在另一对话开发，先核对它实际HEAD/未提交工作与旧协议交接，不覆盖它的改动。优先处理用户新的反馈，测试与实机验收分开报告。

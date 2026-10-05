@@ -25,7 +25,7 @@
 - 新增docs/HANDOFF.md：实际Git/架构/功能、持续编译与定期同步约定、单一认证试验、Kotonoha跨仓库边界、历史测试/未验收项、命令和新对话入口。纯文档更新，没有读取账号或再次清空用户数据，没有重新跑应用测试或编译。
 - 本轮开始根HEAD43eb1de、工作区干净。实际Node26.10.0/Rust1.99.0；旧/tmp/kugou-cargo和/tmp/kugou-github/gh已清理，系统gh在/usr/bin/gh。默认Cargo缓存覆盖尚未验证，离线构建不要强制使用消失的临时目录。
 - Kotonoha实际HEAD已变为091296c5063a73ff4cc852e225ba525e1cdbc717，另有未跟踪KOTONOHA_INTEGRATION.md；另一对话的工作只读记录，本轮不修改。原协议交接是历史参考，不能把旧版本联调写成新版本/桌面验收。
-- 用户要求完成一批修改后同步私有GitHub；本次交接文件提交/推送结果见实际Git，失败必须报告并给手动上传步骤。
+- 用户要求完成一批修改后同步GitHub；2026-10-06用户已将buzyactor/kugou-lite改为public。首次交接提交778116c推送因旧凭据助手指向消失的/tmp/kugou-github/gh失败；系统gh授权仍有效，本仓库改用/usr/bin/gh后重试。上传结果以实际Git为准。
 
 ## 历史修改：Git与GitHub私有仓库准备
 
