@@ -24,7 +24,7 @@
 
 - 按用户要求初始化main分支；GitHub目标名kugou-lite，用户已明确选择私有。临时GitHub CLI已校验安装于/tmp/kugou-github/gh，已由用户完成官方授权，登录账号buzyactor；目标buzyactor/kugou-lite。
 - 忽略KuGouMusicApi/Kotlin/Kotonoha等参考克隆、.local账号数据、.agents/.codex/.aws、Python缓存与Rust构建目录。运行接口依赖由clone-references --runtime-only拉取，README补充首次准备说明；不把嵌套仓库误提交为子模块。
-- 首次源码提交808f5c8与独立源码压缩包已完成，102项跟踪文件无凭据字段/私钥模式；运行依赖准备命令已验证。补充引用API代码的原MIT许可证；源码包从git archive生成，dist不进入Git。上传与远端核对进行中，最终结果以完成记录为准。
+- 首次源码提交808f5c8与独立源码压缩包已完成，102项跟踪文件无凭据字段/私钥模式；运行依赖准备命令已验证。补充引用API代码的原MIT许可证；源码包从git archive生成，dist不进入Git。源码已推送到https://github.com/buzyactor/kugou-lite，已核对isPrivate=true、默认main。源码压缩包和SHA-256作为snapshot-20261005 Release附件上传；不含二进制/依赖/账号数据，具体链接以Release及交付结果为准。
 
 ## 历史修改：单一 KuGouMusicApi 认证与清空旧账号
 
