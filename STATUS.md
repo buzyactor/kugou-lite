@@ -1,6 +1,6 @@
 # Kugou Lite 开发状态
 
-更新时间：2026-10-05（Asia/Shanghai）。本文件用于跨上下文接续；操作说明见 README.md。
+更新时间：2026-10-06（Asia/Shanghai）。新工作对话先读 docs/HANDOFF.md，再读本文件和实际代码；操作说明见 README.md。
 
 ## 维护约定
 
@@ -20,7 +20,14 @@
 - Python：MPRIS 桥接及部分运行检查；CAVA 提供频谱数据。
 - 本地参考项目包括 kgcheckin、voicefox 等；voicefox 用于交互参考，不要把参考项目功能当成本项目已实现功能。
 
-## 最新修改：Git与GitHub私有仓库准备
+## 最新修改：独立开发交接（2026-10-06）
+
+- 新增docs/HANDOFF.md：实际Git/架构/功能、持续编译与定期同步约定、单一认证试验、Kotonoha跨仓库边界、历史测试/未验收项、命令和新对话入口。纯文档更新，没有读取账号或再次清空用户数据，没有重新跑应用测试或编译。
+- 本轮开始根HEAD43eb1de、工作区干净。实际Node26.10.0/Rust1.99.0；旧/tmp/kugou-cargo和/tmp/kugou-github/gh已清理，系统gh在/usr/bin/gh。默认Cargo缓存覆盖尚未验证，离线构建不要强制使用消失的临时目录。
+- Kotonoha实际HEAD已变为091296c5063a73ff4cc852e225ba525e1cdbc717，另有未跟踪KOTONOHA_INTEGRATION.md；另一对话的工作只读记录，本轮不修改。原协议交接是历史参考，不能把旧版本联调写成新版本/桌面验收。
+- 用户要求完成一批修改后同步私有GitHub；本次交接文件提交/推送结果见实际Git，失败必须报告并给手动上传步骤。
+
+## 历史修改：Git与GitHub私有仓库准备
 
 - 按用户要求初始化main分支；GitHub目标名kugou-lite，用户已明确选择私有。临时GitHub CLI已校验安装于/tmp/kugou-github/gh，已由用户完成官方授权，登录账号buzyactor；目标buzyactor/kugou-lite。
 - 忽略KuGouMusicApi/Kotlin/Kotonoha等参考克隆、.local账号数据、.agents/.codex/.aws、Python缓存与Rust构建目录。运行接口依赖由clone-references --runtime-only拉取，README补充首次准备说明；不把嵌套仓库误提交为子模块。
@@ -294,4 +301,4 @@ python tests/layout_regression_smoke.py
 
 2026-10-05按用户明确要求初始化根Git仓库；参考仓库/账号数据/构建缓存均忽略，历史工作以首次提交为起点。GitHub目标为私有kugou-lite，上传状态以最新记录为准。
 
-最新任务为单一KuGouMusicApi登录试验与清空旧账号，入口/候选清单见`docs/investigations/login-api-inventory.md`；重新扫码与保持时间待实机观察，不宣称掉线已解决。Kotonoha交接仍见`docs/KOTONOHA_INTEGRATION.md`。保留已有搜索建议、歌单排序、歌词边界、返回位置和全屏封面恢复；真实桌面视觉仍待实机验收。歌手缺失字段/主页完整照片来源仍属接口边界，不得伪造；线上先对实际hostname运行无凭据网络检查再做只读探针。
+最新任务为创建独立交接，入口`docs/HANDOFF.md`。继续开发以用户新反馈为准；核心未决仍是单一KuGouMusicApi登录真实保持时间，候选清单见`docs/investigations/login-api-inventory.md`；2026-10-05清账号是历史操作，不再次自动清除，不宣称掉线已解决。Kotonoha交接仍见`docs/KOTONOHA_INTEGRATION.md`。保留已有搜索建议、歌单排序、歌词边界、返回位置和全屏封面恢复；真实桌面视觉仍待实机验收。歌手缺失字段/主页完整照片来源仍属接口边界，不得伪造；线上先对实际hostname运行无凭据网络检查再做只读探针。
