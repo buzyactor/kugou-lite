@@ -22,9 +22,9 @@
 
 ## 最新修改：Git与GitHub私有仓库准备
 
-- 按用户要求初始化main分支；GitHub目标名kugou-lite，用户已明确选择私有。当前GitHub CLI未安装且尚未确认登录，上传需要完成认证后继续。
+- 按用户要求初始化main分支；GitHub目标名kugou-lite，用户已明确选择私有。临时GitHub CLI已校验安装于/tmp/kugou-github/gh，已由用户完成官方授权，登录账号buzyactor；目标buzyactor/kugou-lite。
 - 忽略KuGouMusicApi/Kotlin/Kotonoha等参考克隆、.local账号数据、.agents/.codex/.aws、Python缓存与Rust构建目录。运行接口依赖由clone-references --runtime-only拉取，README补充首次准备说明；不把嵌套仓库误提交为子模块。
-- 首次源码提交与独立源码压缩包待完成；不得将账号凭据或第三方API的node_modules带入GitHub。
+- 首次源码提交808f5c8与独立源码压缩包已完成，102项跟踪文件无凭据字段/私钥模式；运行依赖准备命令已验证。补充引用API代码的原MIT许可证；源码包从git archive生成，dist不进入Git。上传与远端核对进行中，最终结果以完成记录为准。
 
 ## 历史修改：单一 KuGouMusicApi 认证与清空旧账号
 
