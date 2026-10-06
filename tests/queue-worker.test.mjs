@@ -181,6 +181,26 @@ test('a failed full-collection read leaves the existing playing queue intact',{t
   assert.equal(unchanged.tracks[0].active,true);
 },{QUEUE_FAIL_COLLECTION:'new'}));
 
+test('album playback reads 30-row API pages and preserves one 65-song queue across viewport sizes',async()=>withWorker(async({send,queue})=>{
+ await send('pagesize:40');await send('search:test');await send('searchtype:album');
+ const opened=await send('openentity:0');assert.ok(!opened.some(e=>e.kind==='error'),JSON.stringify(opened));
+ assert.equal(opened.find(e=>e.kind==='catalog').rows.length,40);
+ const play=await send('play:39');assert.equal(play.find(e=>e.kind==='media'&&e.fresh)?.song,'album39');
+ const first=await queue();assert.match(first.title,/65 首/);
+ await send('search:test');await send('searchtype:album');await send('openentity:0');await send('nextpage');
+ const next=await send('play:24');assert.equal(next.find(e=>e.kind==='media'&&e.fresh)?.song,'album64');
+ assert.equal((await queue()).queueId,first.queueId);assert.equal((await queue()).queueCount,1);
+},{QUEUE_ALBUM_COUNT:'65'}));
+
+test('a public playlist rejecting large full-queue reads still plays across pages in one queue',async()=>withWorker(async({send,queue})=>{
+ await send('recommend');await send('sectiontoggle');await send('openlist:0');
+ const firstPlay=await send('play:0');assert.equal(firstPlay.find(e=>e.kind==='media'&&e.fresh)?.song,'public0');
+ const first=await queue();assert.match(first.title,/65 首/);
+ await send('recommend');await send('sectiontoggle');await send('openlist:0');await send('nextpage');
+ const nextPlay=await send('play:0');assert.equal(nextPlay.find(e=>e.kind==='media'&&e.fresh)?.song,'public20');
+ assert.equal((await queue()).queueId,first.queueId);assert.equal((await queue()).queueCount,1);
+},{QUEUE_UI_COUNT:'65',QUEUE_REJECT_LARGE_PUBLIC:'1'}));
+
 test('played history lists only started tracks, not queue members or failed plays, and supports replay',{timeout:15000},async()=>withWorker(async({send})=>{
   assert.equal((await send('history')).find(e=>e.kind==='tracks').tracks.length,0);
   await send('recommend');await send('play:0');await send('nexttrack');

@@ -1,4 +1,5 @@
 import {SortedPlaylists,sortChoices,sortedQueue} from '../src/playlist-sort.mjs';
+import {albumTracks,albumBatchSize} from '../src/album-tracks.mjs';
 import {QueueHistory} from '../src/queue-history.mjs';
 import {QueueStore,emptyQueues} from '../src/queue-store.mjs';
 import {PlayHistory} from '../src/play-history.mjs';
@@ -75,8 +76,8 @@ async function playbackCollection(){
  }
  if(view==='catalog'&&catalogMode==='album'){
   const key=JSON.stringify(['album',albumId]),id=albumId,revision=cancelGeneration;
-  await sortedPlaylists.page(key,async(p,size)=>songRows((await publicRead(`/album/songs?id=${id}&page=${p}&pagesize=${size}`)).data?.songs).map(r=>({...r,kind:'song'})),
-   'default',page,pageSize,1,{expected:Number(collectionInfo?.count)||0,cancelled:()=>closing||revision!==cancelGeneration||albumId!==id,
+  await sortedPlaylists.page(key,(p,size)=>albumTracks(publicRead,id,p,size),
+   'default',page,pageSize,1,{batchSize:albumBatchSize,expected:Number(collectionInfo?.count)||0,cancelled:()=>closing||revision!==cancelGeneration||albumId!==id,
     progress:count=>emit({kind:'status',message:`正在读取完整专辑：${count} 首`})});
   return {rows:sortedPlaylists.all(key,'default',1),source:key,title:pageTitle};
  }
@@ -151,7 +152,7 @@ async function catalogPage(next){
    if(!artistProfile){artistProfile=structuredClone(entry.info);void artistPhoto();}
    rows=entry.songs.slice((next-1)*pageSize,next*pageSize);
   }
- }else if(catalogMode==='album')rows=songRows((await publicRead(`/album/songs?id=${albumId}&${params}`)).data?.songs).map(r=>({...r,kind:'song'}));
+ }else if(catalogMode==='album')rows=await albumTracks(publicRead,albumId,next,pageSize);
  else return;
  if(closing||revision!==cancelGeneration)throw new Error('读取已取消');
  if(!rows.length&&next>1){emit({kind:'status',message:'已经是最后一页'});return;}
@@ -167,7 +168,7 @@ async function openEntity(index){
   await catalogPage(1);void artistPhoto();return;
  }
  if(row.kind==='album'){
-  const rows=songRows((await publicRead(`/album/songs?id=${row.albumId}&page=1&pagesize=${pageSize}`)).data?.songs).map(r=>({...r,kind:'song'}));
+  const rows=await albumTracks(publicRead,row.albumId,1,pageSize);
   commit();albumId=row.albumId;artistProfile=null;catalogMode='album';catalogKey='album:'+albumId;view='catalog';section='';pageTitle=row.title;
   collectionKey=catalogKey;collectionInfo={...playlistInfo(row),title:row.title,creator:row.artist};
   tracks=rows;page=1;numberOffset=0;sendCatalog();void enrichCollection();return;

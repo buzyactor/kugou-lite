@@ -39,22 +39,29 @@ export class SortedPlaylists {
   if(entry.mode!==mode||entry.seed!==seed){entry.ordered=sortTracks(entry.rows,mode,seed);entry.mode=mode;entry.seed=seed;}
   return entry.ordered;
  }
- async page(key,load,mode,page,size,seed,{cancelled=()=>false,progress=()=>{},expected=0}={}) {
+ async page(key,load,mode,page,size,seed,{cancelled=()=>false,progress=()=>{},expected=0,batchSize=100}={}) {
   if(!sortChoices.some(([id])=>id===mode))throw new Error('未知的歌单排序方式');
+  if(!Number.isInteger(batchSize)||batchSize<1||batchSize>100)throw new Error('集合读取分页大小无效');
   if(!this.#cache.has(key)) {
    const rows=[],signatures=new Set();const started=Date.now();
    for(let p=1;;p++) {
     if(cancelled())throw new Error('歌单排序已取消');
     if(p>200||Date.now()-started>120000)throw new Error('歌单过大或读取超时，未改变原有顺序');
-    const batch=await load(p,100);
+    let batch;
+    try{batch=await load(p,batchSize);}catch(error){
+     // Retry only this read's rejected large pagination, from the beginning.
+     // Smaller offsets cannot be mixed with pages already read at size 100.
+     if(error.businessCode!==20010||batchSize<=30||cancelled())throw error;
+     batchSize=30;rows.length=0;signatures.clear();p=0;continue;
+    }
     if(cancelled())throw new Error('歌单排序已取消');
-    if(!Array.isArray(batch)||batch.length>100)throw new Error('歌单分页格式异常，未改变原有顺序');
+    if(!Array.isArray(batch)||batch.length>batchSize)throw new Error('歌单分页格式异常，未改变原有顺序');
     if(batch.length) {
      const signature=JSON.stringify(batch.map(r=>[r.hash,r.title,r.artist,r.duration]));
      if(signatures.has(signature))throw new Error('歌单接口重复返回同一页，未改变原有顺序');
      signatures.add(signature);rows.push(...batch);progress(rows.length);
     }
-    if(batch.length<100) {
+    if(batch.length<batchSize) {
      if(rows.length<expected) {if(batch.length)continue;throw new Error('歌单未完整读取，未改变原有顺序，请刷新歌单后重试');}
      break;
     }

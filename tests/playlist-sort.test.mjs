@@ -4,6 +4,22 @@ import {SortedPlaylists,sortTracks,sortedQueue,sortChoices} from '../src/playlis
 import {playlistTracks} from '../src/playlist-access.mjs';
 import {Discovery} from '../src/discovery.mjs';
 const rows=Array.from({length:205},(_,i)=>({hash:String(i).padStart(32,'0'),title:`Song ${204-i}`,artist:`Artist ${i%3}`,duration:i+1,vip:i%2===0}));
+test('rejected large collection pages restart at 30 without mixing offsets or installing failed reads',async()=>{
+ const sorted=new SortedPlaylists(),calls=[];
+ const load=async(p,size)=>{
+  calls.push([p,size]);
+  if(size===100&&p===2)throw Object.assign(Error('pagination rejected'),{businessCode:20010});
+  return rows.slice((p-1)*size,p*size);
+ };
+ await sorted.page('public',load,'default',2,40,1,{expected:205});
+ assert.deepEqual(calls.slice(0,3),[[1,100],[2,100],[1,30]]);
+ assert.deepEqual(sorted.all('public','default',1),rows);
+ for(const code of [20010,20017]){
+  const failed=new SortedPlaylists(),attempts=[];
+  await assert.rejects(failed.page('failed',async(p,size)=>{attempts.push(size);throw Object.assign(Error('failure'),{businessCode:code});},'default',1,20,1));
+  assert.deepEqual(attempts,code===20010?[100,30]:[100]);assert.equal(failed.has('failed'),false);
+ }
+});
 test('whole-playlist ordering precedes pagination and cache preserves every page and original order',async()=>{
  const sorted=new SortedPlaylists();let calls=0;
  const load=async(p,size)=>{calls++;return rows.slice((p-1)*size,p*size);};

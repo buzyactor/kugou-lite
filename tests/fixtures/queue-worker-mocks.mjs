@@ -13,7 +13,8 @@ const sources={
     const url=new URL(route,'https://mock');
     if(url.pathname==='/album/songs'){
       const page=Number(url.searchParams.get('page')),size=Number(url.searchParams.get('pagesize'));
-      return {data:{songs:Array.from({length:5},(_,i)=>({hash:'c'+String(i).padStart(31,'0'),songname:'album'+i,singername:'Artist',time_length:120,album_audio_id:String(i),album_id:'1'})).slice((page-1)*size,page*size)}};
+      if(size>30)throw Object.assign(Error('Album pagination rejected'),{businessCode:20010});
+      return {data:{songs:Array.from({length:Number(process.env.QUEUE_ALBUM_COUNT)||5},(_,i)=>({hash:'c'+String(i).padStart(31,'0'),songname:'album'+i,singername:'Artist',time_length:120,album_audio_id:String(i),album_id:'1'})).slice((page-1)*size,page*size)}};
     }
     throw Error('Unexpected API call');
   };`,
@@ -23,6 +24,7 @@ const sources={
   'discovery.mjs':`export class Discovery {
     clear(){} async load(request,kind,page,size){
       if(['recommended','hires','ranks'].includes(kind))return [{title:kind,publicId:kind==='ranks'?'':kind,rankId:kind==='ranks'?'1':undefined,count:5}];
+      if(kind==='public'&&process.env.QUEUE_REJECT_LARGE_PUBLIC==='1'&&size>30)throw Object.assign(Error('Public pagination rejected'),{businessCode:20010});
       const failing=kind===process.env.QUEUE_FAIL_COLLECTION;
       if(failing&&size===100&&page===2)throw Error('Synthetic collection read failure');
       return Array.from({length:failing?205:Number(process.env.QUEUE_UI_COUNT)||5},(_,i)=>({hash:(kind==='daily'?'a':'b')+String(i).padStart(31,'0'),title:kind+i,artist:'Artist',duration:120,audioId:String(i),albumId:'1'})).slice((page-1)*size,page*size);
@@ -52,7 +54,7 @@ registerHooks({load(url,context,nextLoad){
        export class QueueStore extends Original {constructor(file,lock){if(!process.env.QUEUE_HISTORY_FILE)throw Error('Missing isolated queues file');super(process.env.QUEUE_HISTORY_FILE+'.queues',lock);}}`};
     if(name==='catalog.mjs')return {format:'module',shortCircuit:true,source:
       `export * from ${JSON.stringify(url+'?original')};
-       export const catalogSearch=async(request,query,type)=>type==='album'?[{kind:'album',albumId:'1',title:'Album',count:5}]:type==='artist'?[{kind:'artist',artistId:'1',title:'Artist'}]:[];
+       export const catalogSearch=async(request,query,type)=>type==='album'?[{kind:'album',albumId:'1',title:'Album',count:Number(process.env.QUEUE_ALBUM_COUNT)||5}]:type==='artist'?[{kind:'artist',artistId:'1',title:'Artist'}]:[];
        export class ArtistCatalog {
          cache=new Map();clear(){this.cache.clear();}
          async load(request,id){const entry={info:{name:'Artist',complete:true,photos:[]},songs:Array.from({length:5},(_,i)=>({kind:'song',hash:'e'+String(i).padStart(31,'0'),title:'artist'+i,artist:'Artist',duration:120,audioId:String(i),albumId:'1'}))};this.cache.set(id,entry);return entry;}
