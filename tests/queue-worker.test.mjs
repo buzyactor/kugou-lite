@@ -33,6 +33,16 @@ async function withWorker(check,options={}){
   }
 }
 
+test('worker exposes high quality menu and accepts higher quality preferences',async()=>withWorker(async({send})=>{
+  const menu=(await send('quality')).find(e=>e.kind==='playlists');
+  assert.deepEqual(menu.lists.map(row=>row.action),['quality:flac','quality:320','quality:128','quality:high','quality:viper_clear','quality:viper_atmos']);
+  for(const quality of ['high','viper_clear','viper_atmos']) {
+    const events=await send('quality:'+quality);
+    assert.equal(events.find(e=>e.kind==='preferences').quality,quality);
+    assert.equal(events.find(e=>e.kind==='playlists').lists.find(row=>row.action==='quality:'+quality).icon,'●');
+  }
+}));
+
 test('worker retains queues, keeps browsing independent, rolls back failed play, paginates and clears on account switch',{timeout:15000},async()=>withWorker(async({send,queue,child,stderr})=>{
     await send('recommend');const firstPlay=await send('play:0');assert.ok(!firstPlay.some(e=>e.kind==='error'),JSON.stringify(firstPlay));
     const a=await queue();assert.equal(a.queueCount,1);assert.equal(a.tracks[0].title,'daily0');

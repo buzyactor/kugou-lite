@@ -77,8 +77,12 @@ with tempfile.TemporaryDirectory(prefix='kugou-queue-ui-') as folder:
         assert contains('已播放历史'), 'sidebar history click failed'
         send(b'u')
         assert contains('历史') and contains('设置'), 'top navigation clipped the new history item or settings'
+        send(b's')
+        assert all(contains(label) for label in ['Hi-Res', '蝰蛇超清', '蝰蛇全景声']), 'higher quality menu missing'
+        send(b'\x1b[B' * 3); send(b'\r')
         send(b'q'); process.wait(timeout=3)
         assert process.returncode == 0
+        assert json.loads((config / 'config.json').read_text())['quality'] == 'high', 'selected quality not persisted'
         print('Queue UI: real worker + TUI create/retain, N switching, Delete inactive/playing/final, empty state and clean exit passed')
     finally:
         if process.poll() is None:

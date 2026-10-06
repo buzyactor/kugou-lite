@@ -1,3 +1,4 @@
+import {qualities, qualityFallbacks} from './playback-options.mjs';
 import { spawn } from 'node:child_process';
 
 export function searchTracks(body) {
@@ -23,15 +24,15 @@ export function playableUrl(body) {
   const data = body?.data && !body.url ? body.data : body;
   const raw = Array.isArray(data?.url) ? data.url[0] : data?.url;
   let url;
-  try { url = new URL(raw); } catch { throw new Error('未取得播放地址，可能无权限或该曲目不可用'); }
+  try { url = new URL(raw); } catch { throw Object.assign(new Error('未取得播放地址，可能无权限或该曲目不可用'), {qualityUnavailable:true}); }
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('播放地址格式不支持');
   // 仅允许酷狗返回的媒体 CDN；不向媒体请求附加账号 cookie。
   if (!/(^|\.)kugou\.(com|net)$/i.test(url.hostname)) throw new Error('尚未支持此音频 CDN 域名');
-  if (Number(data?.is_free_part ?? data?.free_part ?? 0) !== 0) throw new Error('接口返回试听片段，不能作为完整播放验证');
+  if (Number(data?.is_free_part ?? data?.free_part ?? 0) !== 0) throw Object.assign(new Error('接口返回试听片段，不能作为完整播放验证'), {qualityUnavailable:true});
   return url.href;
 }
 export async function resolveTrack(request, track, quality = 'flac') {
-  if(!['flac','320','128'].includes(quality))throw new Error('不支持的音质');
+  if(!qualities.includes(quality))throw new Error('不支持的音质');
   const params = new URLSearchParams({ hash: quality === 'flac' && /^[a-f\d]{32}$/i.test(track.flacHash || '') ? track.flacHash : track.hash, album_id: track.albumId, album_audio_id: track.audioId, quality });
   // 不传 free_part=0：上游以字符串真值判断，该参数必须省略。
   return playableUrl(await request(`/song/url?${params}`));
@@ -129,11 +130,11 @@ export function inspectAudio(url, timeoutMs = 20000) {
     const child=spawn('ffprobe',['-v','error','-rw_timeout','15000000','-select_streams','a:0','-show_entries','stream=codec_name,sample_rate,bits_per_raw_sample,bit_rate','-of','json',url],{stdio:['ignore','pipe','ignore']});
     let output='',settled=false;
     const finish=(error,value)=>{if(settled)return;settled=true;clearTimeout(timer);error?reject(error):resolve(value);};
-    const timer=setTimeout(()=>{child.kill('SIGKILL');finish(new Error('音频格式检查超时，没有降级到 MP3'));},timeoutMs);
+    const timer=setTimeout(()=>{child.kill('SIGKILL');finish(new Error('音频格式检查超时'));},timeoutMs);
     child.stdout.on('data',chunk=>{output+=chunk;if(output.length>65536)child.kill('SIGKILL');});
     child.on('error',()=>finish(new Error('需要 ffprobe 检查真实音质')));
     child.on('close',code=>{
-      if(code!==0)return finish(new Error('无法读取音频格式，没有降级到 MP3'));
+      if(code!==0)return finish(new Error('无法读取音频格式'));
       try {const info=JSON.parse(output).streams?.[0];if(!info?.codec_name)throw Error();finish(null,{codec:info.codec_name,sampleRate:Number(info.sample_rate)||null,bits:Number(info.bits_per_raw_sample)||null,bitRate:Number(info.bit_rate)||null});}
       catch{finish(new Error('音频格式信息无效'));}
     });
@@ -142,4 +143,32 @@ export function inspectAudio(url, timeoutMs = 20000) {
 export function requireLossless(info) {
   if(!['flac','alac','wavpack','ape'].includes(info.codec)) throw new Error(`服务端返回 ${info.codec}，不满足无损要求，已停止播放`);
   return info;
+}
+
+// Retry only unavailable quality tiers. Transport, authentication and unsafe URL errors stay visible.
+export async function resolvePlayback(request, track, preferred = 'flac', {
+  inspect = inspectAudio, onAttempt = () => {}, isCurrent = () => true,
+} = {}) {
+  let lastError, mp3Backup;
+  for (const quality of qualityFallbacks(preferred)) {
+    if (!isCurrent()) throw new Error('播放请求已取消');
+    onAttempt(quality);
+    try {
+      const url = await resolveTrack(request, track, quality);
+      if (!isCurrent()) throw new Error('播放请求已取消');
+      const info = await inspect(url);
+      if (!isCurrent()) throw new Error('播放请求已取消');
+      if (['flac','high'].includes(quality) && !['flac','alac','wavpack','ape'].includes(info.codec)) {
+        if (info.codec==='mp3') mp3Backup={url,info,requested:preferred,resolved:'mp3'};
+        throw Object.assign(new Error('所选无损档位未返回无损音频'), {qualityUnavailable:true});
+      }
+      return {url, info, requested:preferred, resolved:quality};
+    } catch (error) {
+      if (!isCurrent()) throw new Error('播放请求已取消');
+      if (!error.qualityUnavailable) throw error;
+      lastError = error;
+    }
+  }
+  if (mp3Backup) return mp3Backup;
+  throw lastError;
 }

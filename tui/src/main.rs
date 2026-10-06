@@ -223,7 +223,7 @@ fn run(
     let mut needs_login = false;
     let mut login_origin: Option<(bool, bool, bool, bool, bool, bool)> = None;
     let mut delete_account: Option<(String, String)> = None;
-    let mut quality = "等待无损音频".to_string();
+    let mut quality = "等待音频检测".to_string();
     let mut capacity = 0_u16;
     let mut desired_capacity = 1_u16;
     let mut spectrum = serde_json::json!({});
@@ -1977,7 +1977,7 @@ fn render_home(
     } else {
         (inner, ratatui::layout::Rect::default())
     };
-    frame.render_widget(Paragraph::new(format!("\n ♪ {}\n {}\n\n {} · 请求音质 {} · 应用音量 {}%\n U 切换布局 · I 高清/方块封面 · T 歌词译文\n L 扫码登录 · V 会员状态 · C 领取活动奖励",media["title"].as_str().unwrap_or("选择一首歌，开始聆听"),quality,mode_text(&settings.mode),settings.quality.to_uppercase(),settings.volume)).wrap(Wrap{trim:false}),text_area);
+    frame.render_widget(Paragraph::new(format!("\n ♪ {}\n {}\n\n {} · 请求音质 {} · 应用音量 {}%\n U 切换布局 · I 高清/方块封面 · T 歌词译文\n L 扫码登录 · V 会员状态 · C 领取活动奖励",media["title"].as_str().unwrap_or("选择一首歌，开始聆听"),quality,mode_text(&settings.mode),settings::quality_label(&settings.quality),settings.volume)).wrap(Wrap{trim:false}),text_area);
     home_art::placement(art_area)
 }
 #[cfg(test)]
@@ -2103,9 +2103,9 @@ fn change_setting(s: &mut settings::Settings, index: usize, forward: bool) -> Op
             return Some(format!("mode:{}", s.mode));
         }
         8 => {
-            let modes = ["flac", "320", "128"];
+            let modes = settings::QUALITIES;
             let i = modes.iter().position(|m| *m == s.quality).unwrap_or(0);
-            s.quality = modes[(i + if forward { 1 } else { 2 }) % 3].into();
+            s.quality = modes[(i + if forward { 1 } else { modes.len() - 1 }) % modes.len()].into();
             return Some(format!("quality:{}", s.quality));
         }
         9 => {
@@ -2248,6 +2248,27 @@ fn render_media_with_layers(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn quality_settings_cycle_both_directions_and_preserve_request_values() {
+        let mut s = settings::Settings::default();
+        for value in settings::QUALITIES
+            .iter()
+            .cycle()
+            .skip(1)
+            .take(settings::QUALITIES.len())
+        {
+            assert_eq!(
+                change_setting(&mut s, 8, true),
+                Some(format!("quality:{value}"))
+            );
+            assert_eq!(&s.quality, value);
+        }
+        assert_eq!(
+            change_setting(&mut s, 8, false),
+            Some("quality:viper_atmos".into())
+        );
+        assert_eq!(settings::quality_label(&s.quality), "蝰蛇全景声");
+    }
     #[test]
     fn navigation_and_translation_switches_change_rendered_output() {
         use ratatui::{Terminal, backend::TestBackend};

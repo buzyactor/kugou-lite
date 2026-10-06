@@ -30,6 +30,7 @@ const sources={
   'music.mjs':`export const search=async()=>[];
     export const searchTracks=body=>(body.data?.lists??[]).map(r=>({hash:r.FileHash,title:r.SongName,artist:r.SingerName,duration:r.Duration,audioId:String(r.MixSongID),albumId:String(r.AlbumID)}));
     export const resolveTrack=async(request,track)=>{if(track.title==='new1')throw Error('Synthetic playback failure');return track.hash;};
+    export const resolvePlayback=async(request,track,preferred)=>({url:await resolveTrack(request,track),info:{codec:'flac'},requested:preferred,resolved:preferred});
     export const inspectAudio=async()=>({codec:'flac'});export const requireLossless=()=>{};
     export class Player {
       constructor(onEvent,options){this.options=options;this.child=null;}

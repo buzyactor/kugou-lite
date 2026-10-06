@@ -481,7 +481,10 @@ pub fn settings_rows(s: &Settings) -> Vec<String> {
         ),
         format!("歌词自动归位  {} 秒", s.lyric_return),
         format!("播放顺序      {}", mode_text(&s.mode)),
-        format!("请求音质      {}", s.quality.to_uppercase()),
+        format!(
+            "请求音质      {}",
+            crate::settings::quality_label(&s.quality)
+        ),
         format!("应用音量      {}%", s.volume),
         format!(
             "颜色主题      {}/{} · {}  › Enter 选择",

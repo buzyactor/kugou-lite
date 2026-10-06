@@ -12,12 +12,12 @@ import {playlistInfo,mergePlaylistDetail,nextSectionKind,sectionKinds} from '../
 import {Device} from '../src/device.mjs';
 import {SessionReader,expired,retryRead} from '../src/session-reader.mjs';
 import {playlistTracks} from '../src/playlist-access.mjs';
-import {qualities,modes,nextIndex} from '../src/playback-options.mjs';
+import {qualities,qualityLabel,modes,nextIndex} from '../src/playback-options.mjs';
 import {Discovery} from '../src/discovery.mjs';
 import {Desktop, Spectrum} from '../src/desktop.mjs';
 import { Accounts } from '../src/accounts.mjs';
 import { playlists, playlistSongs, songRows, loadLyrics, coverPixels, coverPng, favoriteParams, cacheCover } from '../src/library.mjs';
-import { Player, search, resolveTrack, inspectAudio, requireLossless } from '../src/music.mjs';
+import { Player, search, resolvePlayback } from '../src/music.mjs';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -342,7 +342,7 @@ async function run(command) {
   }
   if(command==='quality'){
     view='options';section='';page=1;pageTitle='选择播放音质';
-    lists=qualities.map((q,i)=>({title:['FLAC 无损','MP3 高品质 · 320 kbps','MP3 标准 · 128 kbps'][i],description:q===preferredQuality?'当前请求档位':'选择后立即应用到当前歌曲',action:'quality:'+q,icon:q===preferredQuality?'●':'○'}));
+    lists=qualities.map(q=>({title:qualityLabel(q),description:q===preferredQuality?'当前请求档位':'选择后立即应用到当前歌曲',action:'quality:'+q,icon:q===preferredQuality?'●':'○'}));
     return listEvent();
   }
   if(command.startsWith('quality:')){
@@ -487,10 +487,11 @@ async function run(command) {
 }
 async function playTrack(track,paused=false,start=0) {
     const revision=++generation,cancelRevision=cancelGeneration;
-    const url = await resolveTrack(route=>session.request(route), track,preferredQuality);
-    emit({kind:'status',message:'正在检查真实音频编码 · '+preferredQuality});
-    const quality=await inspectAudio(url);
-    if(preferredQuality==='flac')requireLossless(quality);
+    const {url,info:quality,resolved,requested}=await resolvePlayback(route=>session.request(route),track,preferredQuality,{
+      isCurrent:()=>revision===generation&&cancelRevision===cancelGeneration&&!closing,
+      onAttempt:q=>emit({kind:'status',message:'正在获取并检查音频 · '+qualityLabel(q)}),
+    });
+    if(resolved!==requested)emit({kind:'status',message:qualityLabel(requested)+' 不可用，已回退至 '+qualityLabel(resolved)});
     const userid=(await accounts.current()).userid;
     if(revision!==generation||cancelRevision!==cancelGeneration||closing)return;
     emit({kind:'quality',...quality});

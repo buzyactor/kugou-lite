@@ -31,6 +31,12 @@ with tempfile.TemporaryDirectory(prefix='kugou-config-') as folder:
     (root / 'import.json').write_text(json.dumps(config))
     run('--import-config', root / 'import.json')
     assert json.loads((app / 'config.json').read_text())['volume'] == 42
+    for quality in ['high', 'viper_clear', 'viper_atmos', 'flac', '320', '128']:
+        config['quality'] = quality
+        (root / 'import.json').write_text(json.dumps(config))
+        run('--import-config', root / 'import.json')
+        run('--export-config', root / 'export.json')
+        assert json.loads((root / 'export.json').read_text())['quality'] == quality
     for key in ['kotonoha_enabled','kotonoha_endpoint','kotonoha_clock_ms']:
         assert json.loads((app / 'config.json').read_text())[key] == config[key]
     before = (app / 'config.json').read_bytes()

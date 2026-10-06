@@ -4,6 +4,18 @@ use std::{
     path::{Path, PathBuf},
     sync::OnceLock,
 };
+pub const QUALITIES: &[&str] = &["flac", "320", "128", "high", "viper_clear", "viper_atmos"];
+pub fn quality_label(value: &str) -> &str {
+    match value {
+        "flac" => "FLAC 无损",
+        "320" => "MP3 320 kbps",
+        "128" => "MP3 128 kbps",
+        "high" => "Hi-Res 高解析无损",
+        "viper_clear" => "蝰蛇超清",
+        "viper_atmos" => "蝰蛇全景声",
+        other => other,
+    }
+}
 #[derive(Clone)]
 pub struct Settings {
     pub kotonoha_enabled: bool,
@@ -131,7 +143,7 @@ impl Settings {
             }
         }
         for (key, choices) in [
-            ("quality", &["flac", "320", "128"][..]),
+            ("quality", QUALITIES),
             ("mode", &["sequence", "loop", "shuffle", "single"][..]),
         ] {
             if v.get(key)
@@ -201,7 +213,7 @@ impl Settings {
             volume: v["volume"].as_u64().unwrap_or(70).min(100) as u8,
             quality: v["quality"]
                 .as_str()
-                .filter(|s| ["flac", "320", "128"].contains(s))
+                .filter(|s| QUALITIES.contains(s))
                 .unwrap_or("flac")
                 .into(),
             mode: v["mode"]
@@ -372,6 +384,16 @@ mod tests {
             r#"{"quality":"aac"}"#,
         ] {
             assert!(Settings::parse(text).is_err(), "{text}");
+        }
+        for quality in QUALITIES {
+            let configured = Settings::parse(&json!({"quality":quality}).to_string()).unwrap();
+            assert_eq!(configured.quality, *quality);
+            assert_eq!(
+                Settings::parse(&configured.json().to_string())
+                    .unwrap()
+                    .quality,
+                *quality
+            );
         }
         assert!(s.json().get("theme").is_none());
         let configured=Settings::parse(r#"{"kotonoha_enabled":true,"kotonoha_endpoint":"ws://[::1]:28746/kotonoha/adapter","kotonoha_clock_ms":750}"#).unwrap();
