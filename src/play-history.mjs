@@ -24,7 +24,7 @@ export class PlayHistory {
       const row={hash:track.hash,title:clean(track.title),artist:clean(track.artist),albumId:String(track.albumId??'0'),audioId:String(track.audioId??'0'),
         duration:Number(track.duration)||0,vip:Boolean(track.vip),playedAt};
       if(/^[a-f\d]{32}$/i.test(track.flacHash??''))row.flacHash=track.flacHash;
-      try{const cover=new URL(track.cover);if(['http:','https:'].includes(cover.protocol)&&!cover.username&&!cover.password&&/(^|\.)(kugou\.(com|net)|kgimg\.com)$/i.test(cover.hostname)){cover.search='';cover.hash='';row.cover=cover.href;}}catch{}
+      try{const cover=new URL(track.cover);if(['http:','https:'].includes(cover.protocol)&&!cover.username&&!cover.password&&/(^|\.)(kugou\.(com|net)|kgimg\.com)$/i.test(cover.hostname)){cover.search='';cover.hash='';row.cover=cover.href.replace(/%7Bsize%7D/gi,'{size}');}}catch{}
       // Store catalogue fields only; never store stream URLs, credentials or API replies.
       const previous=data.accounts[String(userid)]??[];
       data.accounts[String(userid)]=[row,...previous.filter(r=>r.hash!==row.hash||r.audioId!==row.audioId)].slice(0,500);

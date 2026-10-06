@@ -133,7 +133,7 @@ cargo test --manifest-path tui/Cargo.toml
 
 CAVA 使用真实的 PulseAudio/pipewire-pulse 默认输出监视器，60 帧/秒、48 个频段；其他应用的声音也会进入该输出频谱。暂停、停止时频谱平滑回落至静音并退出 CAVA；播放时重新启动。不修改用户 CAVA 配置。缺少 CAVA 或音频输入不可用时显示提示，播放器仍可使用。
 
-MPRIS 服务为 `org.mpris.MediaPlayer2.kugou_lite`，支持播放、暂停、停止、当前页播放队列的上一首/下一首、歌曲信息、进度读取、独立音量。翻页或搜索不会替换已经开始播放的队列；选择新歌时才替换。支持桌面拖动进度（SetPosition）、相对跳转（Seek）、实际跳转完成通知（Seeked），拒绝过期歌曲的跳转请求。封面以本地 PNG 的 `mpris:artUrl` 发布，下载完成后通知桌面更新；缓存最多保留 64 张。播放模式通过 LoopStatus / Shuffle 同步。只注册一个主实例，第二个窗口无法注册时会提示，但仍可播放。需要桌面会话 D-Bus，以及 Python 的 `dbus`、`gi` 模块；本机已安装这些依赖和 CAVA。
+MPRIS 服务为 `org.mpris.MediaPlayer2.kugou_lite`，支持播放、暂停、停止、当前页播放队列的上一首/下一首、歌曲信息、进度读取、独立音量。翻页或搜索不会替换已经开始播放的队列；选择新歌时才替换。支持桌面拖动进度（SetPosition）、相对跳转（Seek）、实际跳转完成通知（Seeked），拒绝过期歌曲的跳转请求。封面以本地 PNG 的 `mpris:artUrl` 发布，下载完成后通知桌面更新；缓存最多保留 64 张。播放页（含历史重播）优先按歌曲 hash 读取本地缓存，直接显示高清 PNG，并从同一缓存生成方块封面；未命中才获取远程图片。历史封面保留尺寸模板，旧记录中的编码模板也兼容，无需清空历史。播放模式通过 LoopStatus / Shuffle 同步。只注册一个主实例，第二个窗口无法注册时会提示，但仍可播放。需要桌面会话 D-Bus，以及 Python 的 `dbus`、`gi` 模块；本机已安装这些依赖和 CAVA。
 
 在播放器运行时可用：
 

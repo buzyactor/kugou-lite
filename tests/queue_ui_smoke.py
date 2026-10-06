@@ -1,6 +1,6 @@
 """Real TUI + real worker loop; API/account/audio dependencies are mocked."""
 import os, pty, fcntl, termios, struct, subprocess, tempfile, time, select, shutil
-import json
+import json, base64
 import sys
 from pathlib import Path
 sys.path.insert(0, '/usr/lib/kitty')
@@ -10,6 +10,8 @@ with tempfile.TemporaryDirectory(prefix='kugou-queue-ui-') as folder:
     root = Path(folder)
     config = root / 'config/kugou-lite'
     config.mkdir(parents=True)
+    covers=root/'covers';covers.mkdir()
+    (covers/('a'+'0'*31+'.png')).write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aGN8AAAAASUVORK5CYII='))
     (config / 'config.json').write_text(json.dumps({'desktop_notifications': False, 'in_app_notifications': False, 'mode': 'sequence'}))
     node = root / 'node'
     fixture = Path('tests/fixtures/queue-worker-mocks.mjs').resolve()
@@ -69,7 +71,11 @@ with tempfile.TemporaryDirectory(prefix='kugou-queue-ui-') as folder:
         send(b'e')
         assert contains('已播放历史 · 3 首'), 'history did not retain actually played songs'
         assert contains('daily0') and contains('new0'), 'played songs missing from history'
-        send(b'\x1b[B' * 2); send(b'\r'); send(b'e')
+        send(b'\x1b[B' * 2)
+        before=len(output)
+        send(b'\r')
+        assert b'a=T,f=100,t=d,i=47201' in output[before:], 'history replay did not render the cached playback cover'
+        send(b'e')
         assert contains('daily0'), 'history replay failed'
         sidebar_row=next(i for i in range(40) if '历史' in str(screen.line(i))[:22])
         send(f'\x1b[<0;10;{sidebar_row+1}M'.encode())

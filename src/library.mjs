@@ -1,4 +1,5 @@
-import {mkdir,writeFile,readdir,unlink,rename} from 'node:fs/promises';
+import {mkdir,writeFile,readdir,unlink,rename,open} from 'node:fs/promises';
+import {constants} from 'node:fs';
 import {randomUUID} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {join} from 'node:path';
@@ -44,6 +45,20 @@ export async function cacheCover(directory,hash,png) {
   const files=(await readdir(dir)).filter(f=>/^[a-f\d]{32}\.png$/i.test(f)&&f!==hash+'.png');
   await Promise.all(files.slice(0,Math.max(0,files.length-63)).map(f=>unlink(join(dir,f)).catch(()=>{})));
   return pathToFileURL(file).href;
+}
+export async function readCachedCover(directory,hash) {
+  if(!/^[a-f\d]{32}$/i.test(hash))return {png:'',artUrl:''};
+  const file=join(directory,'covers',hash+'.png');
+  let handle;
+  try{
+    handle=await open(file,constants.O_RDONLY|constants.O_NOFOLLOW);
+    const info=await handle.stat();
+    if(!info.isFile()||info.size>2*1024*1024)return {png:'',artUrl:''};
+    const bytes=await handle.readFile();
+    if(!bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))return {png:'',artUrl:''};
+    return {png:bytes.toString('base64'),artUrl:pathToFileURL(file).href};
+  }catch{return {png:'',artUrl:''};}
+  finally{await handle?.close().catch(()=>{});}
 }
 export function parseKrc(text) {
   const result=[];
@@ -115,7 +130,7 @@ export function favoriteParams(track, listid) {
 }
 export function coverUrl(raw,size=600) {
   try {
-    const url=new URL(String(raw).trim().replaceAll('{size}',String(size)));
+    const url=new URL(String(raw).trim().replace(/\{size\}|%7Bsize%7D/gi,String(size)));
     if(!['http:','https:'].includes(url.protocol)||url.username||url.password||!/(^|\.)(kugou\.(com|net)|kgimg\.com)$/i.test(url.hostname))return null;
     return url;
   }catch{return null;}
@@ -124,8 +139,17 @@ export async function coverPixels(raw) {
   if(!raw) return [];
   const url=coverUrl(raw,200);
   if(!url) return [];
+  return decodeCoverPixels(url.href);
+}
+export function cachedCoverPixels(png) {
+  const bytes=Buffer.from(png,'base64');
+  if(bytes.length>2*1024*1024||!bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))return Promise.resolve([]);
+  return decodeCoverPixels('pipe:0',bytes);
+}
+function decodeCoverPixels(input,bytes) {
   return new Promise((resolve)=>{
-    const child=spawn('ffmpeg',['-nostdin','-v','error','-rw_timeout','8000000','-i',url.href,'-vf','scale=32:32','-frames:v','1','-f','rawvideo','-pix_fmt','rgb24','pipe:1'],{stdio:['ignore','pipe','ignore']});
+    const child=spawn('ffmpeg',['-nostdin','-v','error','-rw_timeout','8000000','-i',input,'-vf','scale=32:32','-frames:v','1','-f','rawvideo','-pix_fmt','rgb24','pipe:1'],{stdio:[bytes?'pipe':'ignore','pipe','ignore']});
+    if(bytes){child.stdin.on('error',()=>{});child.stdin.end(bytes);}
     let data=Buffer.alloc(0);const timer=setTimeout(()=>child.kill('SIGKILL'),10000);
     child.stdout.on('data',chunk=>{data=Buffer.concat([data,chunk]);if(data.length>3072) child.kill('SIGKILL');});
     child.on('error',()=>{clearTimeout(timer);resolve([]);});

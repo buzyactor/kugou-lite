@@ -5,6 +5,7 @@ import {createInterface} from 'node:readline';
 import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {cacheCover} from '../src/library.mjs';
 
 async function withWorker(check,options={}){
   const folder=await mkdtemp(join(tmpdir(),'kugou-queue-worker-'));
@@ -26,7 +27,7 @@ async function withWorker(check,options={}){
     return events.slice(offset);
   }
   const queue=async(command='queue')=>(await send(command)).find(event=>event.kind==='queue');
-  try{await check({send,queue,child,stderr:()=>stderr});}
+  try{await check({send,queue,child,folder,stderr:()=>stderr});}
   finally{
     child.stdin.end();if(child.exitCode===null)await new Promise(resolve=>{child.once('exit',resolve);child.kill('SIGTERM');});
     await rm(folder,{recursive:true,force:true});
@@ -53,6 +54,16 @@ test('playback popup quality apply keeps collection navigation and the playing q
   assert.equal((await queue()).queueId,before.queueId);
   assert.equal((await queue()).queueCount,1);
 }));
+
+test('history replay immediately sends the cached cover even without a remote cover URL',async()=>withWorker(async({send,folder})=>{
+  const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aGN8AAAAASUVORK5CYII=';
+  await cacheCover(folder,'a'+'0'.repeat(31),png);
+  await send('recommend');await send('play:0');await send('history');
+  const events=await send('play:0');
+  const fresh=events.find(e=>e.kind==='media'&&e.fresh);
+  assert.equal(fresh.song,'daily0');assert.equal(fresh.png,png);
+  assert.ok(events.filter(e=>e.kind==='media').every(e=>e.png===png));
+} ,{QUEUE_EXPECT_CACHED_COVER:'1'}));
 
 test('worker retains queues, keeps browsing independent, rolls back failed play, paginates and clears on account switch',{timeout:15000},async()=>withWorker(async({send,queue,child,stderr})=>{
     await send('recommend');const firstPlay=await send('play:0');assert.ok(!firstPlay.some(e=>e.kind==='error'),JSON.stringify(firstPlay));

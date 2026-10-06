@@ -54,7 +54,11 @@ registerHooks({load(url,context,nextLoad){
        }`};
     if(name==='library.mjs')return {format:'module',shortCircuit:true,source:
       `export * from ${JSON.stringify(url+'?original')};
-       export const loadLyrics=async()=>[];export const coverPixels=async()=>[];export const coverPng=async()=>'';export const cacheCover=async()=>'';`};
+       import {readCachedCover as originalReadCachedCover} from ${JSON.stringify(url+'?original')};
+       import {dirname} from 'node:path';
+       export const readCachedCover=async(directory,hash)=>originalReadCachedCover(dirname(process.env.QUEUE_HISTORY_FILE),hash);
+       export const cachedCoverPixels=async()=>[];
+       export const loadLyrics=async()=>[];export const coverPixels=async()=>[];export const coverPng=async()=>{if(process.env.QUEUE_EXPECT_CACHED_COVER)throw Error('Unexpected cover network load');return '';};export const cacheCover=async()=>'';`};
   }
   return nextLoad(url,context);
 }});

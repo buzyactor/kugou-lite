@@ -57,6 +57,7 @@
 - 底部进度鼠标拖动、前后/播放图标可点；歌词完整换行、英文词/符号相邻不凭空插空格、非当前原文+译文紧凑成组，不能超出歌词区域或污染CAVA边框。
 - 队列历史：不同集合/排序结果保留旧队列、新建队列；B打开，N循环查看、Enter切换播放、Delete删除正在查看的队列。浏览不打断音乐，删除播放队列才停止。每日推荐/新歌/排行榜/个人及收藏/推荐及Hi-Res公开歌单/专辑播放前汇总完整集合，跨UI页不拆队列；歌手复用已获取目录，搜索歌曲仍按页。仅本次运行，账号切换/重新扫码清空。实现src/queue-history.mjs与worker，queue-worker.test.mjs和queue_ui_smoke.py覆盖45首跨页及九类集合。
 - 已播放历史[E]：侧栏/顶栏入口，实际Playing后记录，Enter重播、F收藏。src/play-history.mjs按账号保存最近500首于.local/play-history.json，重复播放移至最前，重启保留；白名单元数据、600权限、原子写入/账号锁，保存失败不阻断播放，损坏文件保留。
+- 历史重播封面修复：src/library.mjs新增readCachedCover/cachedCoverPixels，worker播放时先读.local/covers/<hash>.png，在fresh media直接携带缓存高清图，方块图从缓存解码；未命中才下载，MPRIS共用缓存。历史记录URL保存保留{size}；coverUrl兼容旧%7Bsize%7D记录，不清历史。缓存仍最多64张。
 - 应用和Linux通知使用原高清小狼PNG。tools/install-desktop.mjs已安装当前用户kugou-lite.desktop与图标，Kitty带应用class启动；通知和MPRIS关联DesktopEntry=kugou-lite。真实DBus通知ID1148接受，GPU/通知服务视觉效果未由用户验收。
 - 两套侧/顶导航，主题预设23套，设置分页，独立theme.json及导入导出；所有板块、进度、状态栏、不同歌词阶段颜色属于主题配置。
 - 可选Linux与应用内通知；CAVA多个图案，真实频谱来自输出监视器，可能含其他应用声音。

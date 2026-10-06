@@ -16,7 +16,7 @@ import {qualities,qualityLabel,modes,nextIndex} from '../src/playback-options.mj
 import {Discovery} from '../src/discovery.mjs';
 import {Desktop, Spectrum} from '../src/desktop.mjs';
 import { Accounts } from '../src/accounts.mjs';
-import { playlists, playlistSongs, songRows, loadLyrics, coverPixels, coverPng, favoriteParams, cacheCover } from '../src/library.mjs';
+import { playlists, playlistSongs, songRows, loadLyrics, coverPixels, coverPng, favoriteParams, cacheCover, readCachedCover, cachedCoverPixels } from '../src/library.mjs';
 import { Player, search, resolvePlayback } from '../src/music.mjs';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
@@ -494,20 +494,21 @@ async function playTrack(track,paused=false,start=0) {
       onAttempt:q=>emit({kind:'status',message:'正在获取并检查音频 · '+qualityLabel(q)}),
     });
     if(resolved!==requested)emit({kind:'status',message:qualityLabel(requested)+' 不可用，已回退至 '+qualityLabel(resolved)});
+    const cached=await readCachedCover(directory,track.hash);
     const userid=(await accounts.current()).userid;
     if(revision!==generation||cancelRevision!==cancelGeneration||closing)return;
     emit({kind:'quality',...quality});
     pendingHistoryTrack={userid,track:{...track}};
-    player.play(url,paused,start);desktop.update({track:(({hash,title,artist,duration})=>({hash,title,artist,duration}))(track),artUrl:'',seconds:start,...queueState()});
+    player.play(url,paused,start);desktop.update({track:(({hash,title,artist,duration})=>({hash,title,artist,duration}))(track),artUrl:cached.artUrl,seconds:start,...queueState()});
     const playInstance=kotonoha.beginTrack(track);
-    emit({kind:'media',fresh:true,seconds:start,song:track.title,artist:track.artist,duration:track.duration,lyrics:[],pixels:[],title:track.artist+' - '+track.title});
+    emit({kind:'media',fresh:true,seconds:start,song:track.title,artist:track.artist,duration:track.duration,lyrics:[],pixels:[],png:cached.png,title:track.artist+' - '+track.title});
     const publicCollection=section==='search';
  const request=route=>publicCollection?publicRead(route):session.request(route);
-    const asset={kind:'media',song:track.title,artist:track.artist,duration:track.duration,title:track.artist+' - '+track.title,lyrics:[],pixels:[],png:''};
+    const asset={kind:'media',song:track.title,artist:track.artist,duration:track.duration,title:track.artist+' - '+track.title,lyrics:[],pixels:[],png:cached.png};
     const update=(key,value)=>{if(revision!==generation||closing)return;asset[key]=value;if(key==='lyrics')kotonoha.setLyrics(playInstance,value,track);emit({...asset});};
     void loadLyrics(request,track).then(value=>update('lyrics',value)).catch(()=>update('lyrics',[]));
-    void coverPixels(track.cover).then(value=>update('pixels',value)).catch(()=>{});
-    void coverPng(track.cover).then(async value=>{
+    void (cached.png?cachedCoverPixels(cached.png):coverPixels(track.cover)).then(value=>update('pixels',value)).catch(()=>{});
+    if(!cached.png)void coverPng(track.cover).then(async value=>{
       if(revision!==generation||closing)return;
       update('png',value);
       const artUrl=await cacheCover(directory,track.hash,value);
