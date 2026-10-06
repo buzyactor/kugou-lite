@@ -20,6 +20,14 @@
 - Python：MPRIS 桥接及部分运行检查；CAVA 提供频谱数据。
 - 本地参考项目包括 kgcheckin、voicefox 等；voicefox 用于交互参考，不要把参考项目功能当成本项目已实现功能。
 
+## 接续基线核验（2026-10-06）
+
+- 开始时根仓库main工作区干净，HEAD为8de99b0；已读取docs/HANDOFF.md、本文件、README.md及适用的/home/wolf/AGENTS.md，核对认证路由和SessionReader。扫码/设备注册/续期仍固定使用modern，不回退旧认证。
+- 当前完整Node测试97项通过，Rust单元测试31项通过，cargo fmt检查通过。首次沙箱内Node测试的mpv IPC被禁止；获准在沙箱外重跑后全部通过，未因此修改播放器。
+- cargo build --offline成功，tui/target/debug/kugou-lite已重新编译；config_smoke与ui_smoke通过，覆盖配置/主题往返、Kotonoha设置、扫码Esc返回、账号删除取消/确认、底栏鼠标和退出。交互使用模拟worker，不代表真实账号或Kitty GPU验收。
+- 默认Cargo缓存已实际支持离线测试；不再使用已清理的/tmp/kugou-cargo。新功能需求等待用户具体说明，本次未读取账号凭据、清账号或验证线上登录保持时间。
+- Kotonoha只读核对HEAD仍为091296c，KOTONOHA_INTEGRATION.md未跟踪；未修改该独立仓库。
+
 ## 最新修改：独立开发交接（2026-10-06）
 
 - 新增docs/HANDOFF.md：实际Git/架构/功能、持续编译与定期同步约定、单一认证试验、Kotonoha跨仓库边界、历史测试/未验收项、命令和新对话入口。纯文档更新，没有读取账号或再次清空用户数据，没有重新跑应用测试或编译。
@@ -286,16 +294,16 @@ Kitty 检查是 PTY/终端解析结果，不等于真实 GPU、字体和屏幕�
 ```sh
 npm run tui
 npm test
-CARGO_HOME=/tmp/kugou-cargo cargo fmt --manifest-path tui/Cargo.toml
-CARGO_HOME=/tmp/kugou-cargo cargo test --manifest-path tui/Cargo.toml --offline
-CARGO_HOME=/tmp/kugou-cargo cargo build --manifest-path tui/Cargo.toml --offline
+cargo fmt --manifest-path tui/Cargo.toml --check
+cargo test --manifest-path tui/Cargo.toml --offline
+cargo build --manifest-path tui/Cargo.toml --offline
 python tests/playlist_sort_smoke.py
 python tests/collections_smoke.py
 python tests/search_cover_smoke.py
 python tests/layout_regression_smoke.py
 ```
 
-当前离线 Cargo 缓存位于 `/tmp/kugou-cargo`；若临时目录被清理，应检查缓存再选择联网构建。开发构建已开启优化以保持动画流畅。当前可执行文件为 `tui/target/debug/kugou-lite`。
+当前使用默认Cargo缓存，2026-10-06离线测试已通过；旧`/tmp/kugou-cargo`已清理，不要再强制指定。若后续缺少依赖，按实际错误申请联网构建。开发构建已开启优化以保持动画流畅。当前可执行文件为 `tui/target/debug/kugou-lite`。
 
 部分颜色测试需移除测试进程环境中的 `NO_COLOR`；Kitty 解析检查依赖本机 `/usr/lib/kitty`。不要因这些环境差异误判界面实现。
 
