@@ -369,8 +369,9 @@ fn run(
                     view = "queue".into();
                     section.clear();
                     page_loaded = true;
-                    page_title = "≡ 当前播放队列".into();
-                    page_description = "Enter 播放选中歌曲 · Tab 返回播放页".into();
+                    page_title = value["title"].as_str().unwrap_or("队列历史").into();
+                    page_description =
+                        "N 切换队列 · Delete 删除此队列 · Enter 播放 · ←→ 翻页 · Tab 播放页".into();
                     if value["resized"] != true {
                         media_shown = false;
                     }
@@ -379,7 +380,12 @@ fn run(
                     selection.select(if tracks.is_empty() {
                         None
                     } else {
-                        Some(tracks.iter().position(|t| t["active"] == true).unwrap_or(0))
+                        Some(
+                            tracks
+                                .iter()
+                                .position(|t| t["active"] == true || t["remembered"] == true)
+                                .unwrap_or(0),
+                        )
                     });
                 }
                 "accounts" => {
@@ -1759,6 +1765,10 @@ fn run(
                     continue;
                 }
                 let command = match key.code {
+                    KeyCode::Char('n' | 'N') if !home && !media_shown && view == "queue" => {
+                        "queuenext"
+                    }
+                    KeyCode::Delete if !home && !media_shown && view == "queue" => "queuedelete",
                     KeyCode::Char('n' | 'N') if !home && !media_shown && section_root => {
                         "sectiontoggle"
                     }
