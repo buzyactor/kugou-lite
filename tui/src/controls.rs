@@ -23,6 +23,7 @@ pub struct Regions {
     pub theme_menu: Rect,
     pub sort_menu: Rect,
     pub quality_menu: Rect,
+    pub song_menu: Rect,
     pub list: Rect,
     pub profile: Rect,
     pub icons: Vec<(Rect, String)>,
@@ -677,7 +678,7 @@ pub fn settings_page(
     regions.settings = parts[1];
     if page == 4 {
         regions.help = parts[1];
-        f.render_widget(Paragraph::new(format!("配置：{}\n主题：{}\n--import-config / --export-config + 路径\n--import-theme / --export-theme + 路径\n\nEsc 返回 · H/F2 主页 · Q 退出 · ? 设置\n/ 搜索 · R 推荐 · D 发现 · P 歌单\n推荐/发现：N 歌曲/歌单 · 发现 T 排行榜\n搜索：N 歌曲/歌单/专辑/歌手\n歌手：N 热门单曲/单曲/专辑 · J 资料 · ,/. 照片\n资料：1–5 / N / ←→ 分类 · ↑↓ / 滚轮浏览\nA 账号 · L 扫码 · Delete 删除账号\nTab 播放页 · 空格 暂停/继续\n[ / ] 上一首 / 下一首\n←→ 翻页 / 播放页跳转 10 秒\nB 队列 · O 顺序 · S 音质 · F 收藏\n+ / - 应用音量 · U 布局 · I 封面 · T 翻译\nV 会员 · C 领取 · G 刷新 · Z 歌单排序\n\n进度条可点击、拖动；歌词滚轮浏览\n设置自动保存；Shift↑↓ 调整状态栏板块顺序",crate::settings::Settings::file().display(),crate::settings::directory().join("theme.json").display())).scroll((help_scroll,0)).style(Style::default().fg(theme::current().muted)),parts[1]);
+        f.render_widget(Paragraph::new(format!("配置：{}\n主题：{}\n--import-config / --export-config + 路径\n--import-theme / --export-theme + 路径\n\nEsc 返回 · H/F2 主页 · Q 退出 · ? 设置\n/ 搜索 · R 推荐 · D 发现 · P 歌单\n推荐/发现：N 歌曲/歌单 · 发现 T 排行榜\n搜索：N 歌曲/歌单/专辑/歌手\n歌手：N 热门单曲/单曲/专辑 · J 资料 · ,/. 照片\n资料：1–5 / N / ←→ 分类 · ↑↓ / 滚轮浏览\nA 账号 · L 扫码 · Delete 删除账号\nTab 播放页 · 空格 暂停/继续\n[ / ] 上一首 / 下一首\n←→ 翻页 / 播放页跳转 10 秒\nB 队列 · O 顺序 · S 音质 · F 收藏\nK / 右键 歌曲操作 · M 标记 · F 批量收藏\n队列 N 切换 · Delete 删除队列\n队列编辑：K 上下移动/移除/重命名/固定\n+ / - 应用音量 · U 布局 · I 封面 · T 翻译\nV 会员 · C 领取 · G 刷新 · Z 歌单排序\n\n进度条可点击、拖动；歌词滚轮浏览\n设置自动保存；Shift↑↓ 调整状态栏板块顺序",crate::settings::Settings::file().display(),crate::settings::directory().join("theme.json").display())).scroll((help_scroll,0)).style(Style::default().fg(theme::current().muted)),parts[1]);
     } else {
         let rows = settings_rows(s);
         let ids = settings_indices(s, page);

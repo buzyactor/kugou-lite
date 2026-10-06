@@ -9,7 +9,7 @@ export class QueueHistory {
   get playing(){return this.entries.find(entry=>entry.id===this.playingId)??null;}
   get viewed(){return this.entries.find(entry=>entry.id===this.viewedId)??null;}
   update(index){if(this.playing&&this.playing.index!==index){this.playing.index=index;this.revision++;}}
-  snapshot(){return {entries:this.entries.map(({id,source,title,tracks,index})=>({id,source,title,tracks:structuredClone(tracks),index})),playingId:this.playingId,viewedId:this.viewedId};}
+  snapshot(){return {entries:this.entries.map(({id,source,title,tracks,index,pinned})=>({id,source,title,tracks:structuredClone(tracks),index,...(pinned?{pinned:true}:{})})),playingId:this.playingId,viewedId:this.viewedId};}
   restore(snapshot){
     this.revision=0;
     this.entries=structuredClone(snapshot.entries).map(entry=>({...entry,signature:JSON.stringify([entry.source,entry.tracks.map(row=>[row.hash,row.audioId,row.albumId])])}));
@@ -40,6 +40,50 @@ export class QueueHistory {
     const entry=this.entries.find(entry=>entry.id===id);
     if(!entry||!Number.isInteger(index)||!entry.tracks[index])throw new Error('队列曲目已失效');
     this.revision++;entry.index=index;this.playingId=id;this.viewedId=id;
+  }
+  edit(id,action,index){
+    const entry=this.entries.find(e=>e.id===id);
+    if(!entry)throw new Error('队列已失效');
+    if(action==='pin'){
+      entry.pinned=!entry.pinned;
+      this.entries.sort((a,b)=>Number(Boolean(b.pinned))-Number(Boolean(a.pinned))||a.id-b.id);
+    }else if(action==='rename'){
+      const title=String(index).replace(/[\x00-\x1f\x7f]/g,'').trim();
+      if(!title||Array.from(title).length>80)throw new Error('队列名称需要 1–80 个字');
+      entry.title=title;
+    }else{
+      if(!Number.isInteger(index)||!entry.tracks[index])throw new Error('请选择有效队列曲目');
+      if(action==='remove'){
+        if(entry.tracks.length===1){const removedCurrent=id===this.playingId;this.viewedId=id;return {...this.remove(),removedCurrent};}
+        entry.tracks.splice(index,1);
+        const removedCurrent=id===this.playingId&&index===entry.index;
+        if(index<entry.index)entry.index--;
+        entry.index=Math.min(entry.index,entry.tracks.length-1);
+        this.changed(entry);return {entry,removedCurrent};
+      }
+      const target=index+(action==='up'?-1:action==='down'?1:0);
+      if(target===index)throw new Error('未知队列操作');
+      if(target<0||target>=entry.tracks.length)return {entry};
+      [entry.tracks[index],entry.tracks[target]]=[entry.tracks[target],entry.tracks[index]];
+      if(entry.index===index)entry.index=target;else if(entry.index===target)entry.index=index;
+      this.changed(entry);return {entry,target};
+    }
+    this.revision++;return {entry};
+  }
+  changed(entry){
+    entry.source='edited:'+entry.id;
+    entry.signature=JSON.stringify([entry.source,entry.tracks.map(row=>[row.hash,row.audioId,row.albumId])]);
+    this.revision++;
+  }
+  insert(rows,mode='append'){
+    if(!rows.length)throw new Error('请选择歌曲');
+    let entry=this.playing??this.viewed;
+    if(!entry){
+      entry={id:++this.sequence,title:'手动队列',source:'manual',tracks:[],index:0};this.entries.push(entry);this.viewedId=entry.id;
+    }
+    const at=mode==='next'&&entry.tracks.length?entry.index+1:entry.tracks.length;
+    entry.tracks.splice(at,0,...rows.map(row=>({...row})));this.changed(entry);
+    return entry;
   }
   remove(){
     const index=this.entries.findIndex(entry=>entry.id===this.viewedId);

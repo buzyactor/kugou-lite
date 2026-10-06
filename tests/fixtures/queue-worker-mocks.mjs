@@ -3,20 +3,42 @@ import {registerHooks} from 'node:module';
 const sources={
   'accounts.mjs':`export class Accounts {
     userid=process.env.QUEUE_USERID||'1';
-    async current(){return {userid:this.userid};} async read(){return {accounts:[]};}
+    async current(){return {userid:this.userid,token:'fixture'};} async read(){return {accounts:[]};}
     async summary(){return [];} async select(index){this.userid=String(index+1);} async remove(){return true;}
     async withLock(action){return action();}
   }`,
   'session-reader.mjs':`export const expired=()=>false; export const retryRead=async(request,route)=>request(route);
-    export class SessionReader {async maintain(){} async request(){throw Error('Unexpected API read');}}`,
-  'direct-api.mjs':`export const LOGIN_PROVIDER='mock'; export const directRequest=()=>async route=>{
+    export class SessionReader {async maintain(){} async request(route){return globalThis.queueFavoriteRequest(route);}}`,
+  'direct-api.mjs':`export const LOGIN_PROVIDER='mock';
+    const favorites=new Map();let fileId=100;
+    globalThis.queueFavoriteRequest=async route=>{
+      const url=new URL(route,'https://mock'),listid=url.searchParams.get('listid');
+      const rows=favorites.get(listid)||[];
+      if(url.pathname==='/playlist/track/all/new'){
+        const p=Number(url.searchParams.get('page')),size=Number(url.searchParams.get('pagesize'));
+        return {data:{info:rows.slice((p-1)*size,p*size)}};
+      }
+      if(url.pathname==='/playlist/tracks/add'){
+        const incoming=url.searchParams.get('data').split(',').map(s=>{const [name,hash,album_id,mixsongid]=s.split('|');return {filename:name,hash,album_id,mixsongid,fileid:String(++fileId)};});
+        favorites.set(listid,rows.concat(incoming));
+        console.log(JSON.stringify({kind:'fixture_write',action:'add',count:incoming.length}));
+        if(process.env.QUEUE_FAVORITE_FAIL)throw Error('Synthetic unknown write outcome');
+        return {status:1};
+      }
+      if(url.pathname==='/playlist/tracks/del'){
+        const ids=url.searchParams.get('fileids').split(',');favorites.set(listid,rows.filter(r=>!ids.includes(r.fileid)));
+        console.log(JSON.stringify({kind:'fixture_write',action:'remove',count:ids.length}));return {status:1};
+      }
+      throw Error('Unexpected favorite API read');
+    };
+    export const directRequest=()=>async route=>{
     const url=new URL(route,'https://mock');
     if(url.pathname==='/album/songs'){
       const page=Number(url.searchParams.get('page')),size=Number(url.searchParams.get('pagesize'));
       if(size>30)throw Object.assign(Error('Album pagination rejected'),{businessCode:20010});
       return {data:{songs:Array.from({length:Number(process.env.QUEUE_ALBUM_COUNT)||5},(_,i)=>({hash:'c'+String(i).padStart(31,'0'),songname:'album'+i,singername:'Artist',time_length:120,album_audio_id:String(i),album_id:'1'})).slice((page-1)*size,page*size)}};
     }
-    throw Error('Unexpected API call');
+    return globalThis.queueFavoriteRequest(route);
   };`,
   'user-playlists.mjs':`export class UserPlaylists {clear(){} async page(request,id,kind){return [{title:kind+' list',listid:'1',publicId:kind,type:kind==='collected'?1:0,count:5}];}}`,
   'playlist-access.mjs':`export const playlistTracks=async(request,list,page,size)=>Array.from({length:5},(_,i)=>({hash:'d'+String(i).padStart(31,'0'),title:'personal'+i,artist:'Artist',duration:120,audioId:String(i),albumId:'1'})).slice((page-1)*size,page*size);`,
@@ -44,6 +66,7 @@ const sources={
 registerHooks({load(url,context,nextLoad){
   const parsed=new URL(url),name=parsed.pathname.split('/').at(-1);
   if(parsed.pathname.includes('/src/')&&!parsed.search){
+    if(name==='user-playlists.mjs')return {format:'module',shortCircuit:true,source:`export {playlistGroup} from ${JSON.stringify(url+'?original')};`+sources[name]};
     if(sources[name])return {format:'module',source:sources[name],shortCircuit:true};
     if(name==='play-history.mjs')return {format:'module',shortCircuit:true,source:
       `import {PlayHistory as Original} from ${JSON.stringify(url+'?original')};

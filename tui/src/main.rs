@@ -8,6 +8,7 @@ mod notifications;
 mod quality_menu;
 mod search_ui;
 mod settings;
+mod song_menu;
 mod sort_menu;
 mod theme;
 mod theme_picker;
@@ -212,6 +213,9 @@ fn run(
     let mut settings_scroll = 0_usize;
     let mut theme_picker: Option<theme_picker::Picker> = None;
     let mut quality_picker: Option<quality_menu::Picker> = None;
+    let mut song_dialog: Option<song_menu::Dialog> = None;
+    let mut favorite_media_origin = false;
+    let mut marked_count = 0usize;
     let mut settings_category = 0_usize;
     let mut live_bitrate: Option<f64> = None;
     let mut help_scroll = 0_u16;
@@ -378,7 +382,7 @@ fn run(
                     page_loaded = true;
                     page_title = value["title"].as_str().unwrap_or("队列历史").into();
                     page_description =
-                        "N 切换队列 · Delete 删除此队列 · Enter 播放 · ←→ 翻页 · Tab 播放页".into();
+                        "N 切换队列 · Delete 删除队列 · K 编辑歌曲／队列 · F 收藏 · M 标记".into();
                     if value["resized"] != true {
                         media_shown = false;
                     }
@@ -388,10 +392,18 @@ fn run(
                         None
                     } else {
                         Some(
-                            tracks
-                                .iter()
-                                .position(|t| t["active"] == true || t["remembered"] == true)
-                                .unwrap_or(0),
+                            value["selected"]
+                                .as_u64()
+                                .map(|n| n as usize)
+                                .filter(|n| *n < tracks.len())
+                                .unwrap_or_else(|| {
+                                    tracks
+                                        .iter()
+                                        .position(|t| {
+                                            t["active"] == true || t["remembered"] == true
+                                        })
+                                        .unwrap_or(0)
+                                }),
                         )
                     });
                 }
@@ -507,7 +519,7 @@ fn run(
                     *selection.offset_mut() = (value["offset"].as_u64().unwrap_or(0) as usize)
                         .min(tracks.len().saturating_sub(1));
                     message = if value["selectFavorite"] == true {
-                        "选择目标歌单并按 Enter 收藏"
+                        "选择目标歌单并按 Enter 查看收藏状态"
                     } else {
                         "选择个人歌单并按 Enter 打开"
                     }
@@ -526,7 +538,8 @@ fn run(
                     section = value["section"].as_str().unwrap_or("").into();
                     page_loaded = true;
                     page_title = value["title"].as_str().unwrap_or("歌曲").into();
-                    page_description = "↑↓ 选择 · Enter 播放 · F 收藏 · ←→ 翻页".into();
+                    page_description =
+                        "↑↓ 选择 · Enter 播放 · K 歌曲操作 · F 收藏 · M 标记 · ←→ 翻页".into();
                     view = if value["view"] == "history" {
                         "history"
                     } else {
@@ -548,6 +561,22 @@ fn run(
                         .min(tracks.len().saturating_sub(1));
                     qr.clear();
                     message = format!("找到 {} 首歌曲；方向键选择，Enter 播放", tracks.len());
+                }
+                "actions" | "text_prompt" => {
+                    song_dialog = Some(song_menu::Dialog::from_event(&value))
+                }
+                "favorite_done" => {
+                    media_shown = !home
+                        && favorite_media_origin
+                        && !media["title"].as_str().unwrap_or("").is_empty();
+                    favorite_media_origin = false;
+                }
+                "marks" => {
+                    marked_count = value["count"].as_u64().unwrap_or(0) as usize;
+                    let indices = value["indices"].as_array().cloned().unwrap_or_default();
+                    for (i, row) in tracks.iter_mut().enumerate() {
+                        row["marked"] = serde_json::json!(indices.contains(&serde_json::json!(i)));
+                    }
                 }
                 "busy" => busy = value["value"].as_bool().unwrap_or(false),
                 "search_home" => {
@@ -764,6 +793,10 @@ fn run(
                 );
                 let button = ratatui::layout::Rect::new(areas[1].x + areas[1].width.saturating_sub(15), areas[1].y, areas[1].width.min(14), 1);
                 controls::button(frame, button, "音质 [S] ▾", "key:s", &mut regions);
+                if areas[1].width>=48 {
+                    controls::button(frame,ratatui::layout::Rect::new(button.x.saturating_sub(14),button.y,13,1),"歌曲操作 [K]","key:k",&mut regions);
+                    controls::button(frame,ratatui::layout::Rect::new(button.x.saturating_sub(25),button.y,10,1),"收藏 [F]","key:f",&mut regions);
+                }
             } else if qr.is_empty() && page_loaded && view=="catalog" && catalog_mode=="profile" {
                 let (body,_)=catalog_ui::layout(frame,areas[1],&catalog_mode,&catalog_type,&artist_tab,profile_tab,&artist_info,false,&mut regions);
                 catalog_ui::profile(frame,body,&artist_info,profile_tab,&mut profile_scroll,&mut regions);
@@ -869,7 +902,7 @@ fn run(
                             Style::default().fg(theme::current().muted),
                         ),
                         Span::styled(
-                            if t["active"] == true { "▶ " } else { "♪ " },
+                            if t["marked"] == true { "✓ " } else if t["active"] == true { "▶ " } else { "♪ " },
                             Style::default().fg(theme::current().accent),
                         ),
                         Span::styled(
@@ -996,6 +1029,7 @@ fn run(
             if let Some(picker) = theme_picker.as_mut() {overlays.push(picker.render(frame,&mut regions));}
             if let Some(picker)=sort_picker.as_ref() {overlays.push(picker.render(frame,&mut regions));}
             if let Some(picker)=quality_picker.as_ref() {overlays.push(picker.render(frame,&mut regions,&settings.quality,&quality));}
+            if let Some(dialog)=song_dialog.as_ref(){overlays.push(dialog.render(frame,&mut regions));}
             regions.icons.retain(|(r,_)| !overlays.iter().any(|o| r.intersection(*o).area()>0));
             regions.lyric_text.retain(|l| !overlays.iter().any(|o| l.rect.intersection(*o).area()>0));
             if hd_area.is_some_and(|r| overlays.iter().any(|o| r.intersection(*o).area()>0)) {hd_area=None;}
@@ -1055,6 +1089,12 @@ fn run(
                 }
                 Event::Mouse(mouse) if settings.mouse => {
                     let (x, y) = (mouse.column, mouse.row);
+                    if song_dialog.is_some() && !controls::contains(regions.song_menu, x, y) {
+                        if matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left)) {
+                            song_dialog = None;
+                        }
+                        continue;
+                    }
                     if quality_picker.is_some() && !controls::contains(regions.quality_menu, x, y) {
                         if matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left)) {
                             quality_picker = None;
@@ -1070,6 +1110,10 @@ fn run(
                     match mouse.kind {
                         MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
                             let down = mouse.kind == MouseEventKind::ScrollDown;
+                            if let Some(dialog) = song_dialog.as_mut() {
+                                dialog.key(if down { KeyCode::Down } else { KeyCode::Up });
+                                continue;
+                            }
                             if let Some(picker) = quality_picker.as_mut() {
                                 picker.move_key(if down { KeyCode::Down } else { KeyCode::Up });
                                 continue;
@@ -1176,10 +1220,57 @@ fn run(
                             }
                             continue;
                         }
+                        MouseEventKind::Down(MouseButton::Right)
+                            if !busy && !home && !settings_shown =>
+                        {
+                            let raw = if media_shown {
+                                Some("current".to_string())
+                            } else {
+                                regions.hit(x, y).and_then(|action| {
+                                    action.strip_prefix("row:").map(str::to_string)
+                                })
+                            };
+                            if let Some(raw) = raw {
+                                if media_shown
+                                    || matches!(view.as_str(), "tracks" | "history" | "queue")
+                                    || view == "catalog"
+                                        && tracks
+                                            .get(raw.parse::<usize>().unwrap_or(0))
+                                            .is_some_and(|r| r["kind"] == "song")
+                                {
+                                    writeln!(worker.0.stdin.as_mut().unwrap(), "songmenu:{raw}")?;
+                                    busy = true;
+                                }
+                            }
+                            continue;
+                        }
                         MouseEventKind::Down(MouseButton::Left) => {
                             let Some(action) = regions.hit(x, y) else {
                                 continue;
                             };
+                            if let Some(dialog) = song_dialog.as_ref() {
+                                if !busy {
+                                    if let Some(index) = action
+                                        .strip_prefix("song-select:")
+                                        .and_then(|s| s.parse::<usize>().ok())
+                                    {
+                                        if let song_menu::Action::Send(command) =
+                                            dialog.click(index)
+                                        {
+                                            if command.starts_with("songaction:favorite") {
+                                                favorite_media_origin = media_shown;
+                                            }
+                                            writeln!(
+                                                worker.0.stdin.as_mut().unwrap(),
+                                                "{command}"
+                                            )?;
+                                            busy = true;
+                                            song_dialog = None;
+                                        }
+                                    }
+                                }
+                                continue;
+                            }
                             if quality_picker.is_some() {
                                 if !busy {
                                     if let Some(i) = action
@@ -1316,6 +1407,28 @@ fn run(
             };
             {
                 if key.kind != KeyEventKind::Press {
+                    continue;
+                }
+                if matches!(song_dialog, Some(song_menu::Dialog::Menu { .. }))
+                    && matches!(key.code, KeyCode::Char('q' | 'Q'))
+                {
+                    return Ok(());
+                }
+                if let Some(dialog) = song_dialog.as_mut() {
+                    if !busy {
+                        match dialog.key(key.code) {
+                            song_menu::Action::Close => song_dialog = None,
+                            song_menu::Action::Send(command) => {
+                                if command.starts_with("songaction:favorite") {
+                                    favorite_media_origin = media_shown;
+                                }
+                                writeln!(worker.0.stdin.as_mut().unwrap(), "{command}")?;
+                                busy = true;
+                                song_dialog = None;
+                            }
+                            song_menu::Action::None => {}
+                        }
+                    }
                     continue;
                 }
                 if let Some(picker) = quality_picker.as_mut() {
@@ -1807,18 +1920,48 @@ fn run(
                         _ => {}
                     }
                 }
-                if matches!(key.code, KeyCode::Char('f' | 'F'))
-                    && !home
-                    && !media_shown
-                    && matches!(view.as_str(), "tracks" | "catalog" | "history")
-                    && !tracks.is_empty()
-                    && (view != "catalog"
-                        || tracks[selection.selected().unwrap_or(0)]["kind"] == "song")
+                let song_available = !home
+                    && !settings_shown
+                    && !editing
+                    && (media_shown && !media["title"].as_str().unwrap_or("").is_empty()
+                        || !media_shown
+                            && (matches!(view.as_str(), "tracks" | "history" | "queue")
+                                || view == "catalog"
+                                    && tracks
+                                        .get(selection.selected().unwrap_or(0))
+                                        .is_some_and(|row| row["kind"] == "song"))
+                            && !tracks.is_empty());
+                if song_available
+                    && matches!(key.code, KeyCode::Char('f' | 'F' | 'k' | 'K' | 'm' | 'M'))
+                    && !busy
                 {
-                    busy = true;
+                    let raw = if media_shown {
+                        "current".to_string()
+                    } else {
+                        selection.selected().unwrap_or(0).to_string()
+                    };
+                    let action = match key.code {
+                        KeyCode::Char('f' | 'F') => {
+                            favorite_media_origin = media_shown;
+                            if !media_shown && marked_count > 0 {
+                                "favorite-batch".to_string()
+                            } else {
+                                format!("favorite:{raw}")
+                            }
+                        }
+                        KeyCode::Char('m' | 'M') => format!("mark:{raw}"),
+                        _ => format!("songmenu:{raw}"),
+                    };
                     let input = worker.0.stdin.as_mut().unwrap();
-                    writeln!(input, "favorite:{}", selection.selected().unwrap_or(0))?;
+                    writeln!(
+                        input,
+                        "focus:{}:{}",
+                        selection.selected().unwrap_or(0),
+                        selection.offset()
+                    )?;
+                    writeln!(input, "{action}")?;
                     input.flush()?;
+                    busy = true;
                     continue;
                 }
                 if media_shown

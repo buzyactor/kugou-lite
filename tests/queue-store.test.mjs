@@ -23,6 +23,8 @@ test('all queues, selections and indices survive restart with metadata only and 
     assert.equal(restored.entries[0].tracks[0].cover,'https://imge.kugou.com/{size}/x.jpg');
     restored.next();restored.remove();await store.save('1',restored.snapshot());
     assert.equal((await store.load('1')).entries.length,1);
+    restored.edit(restored.viewed.id,'rename','<我的> 队列');restored.edit(restored.viewed.id,'pin');await store.save('1',restored.snapshot());
+    const named=await store.load('1');assert.equal(named.entries[0].title,'<我的> 队列');assert.equal(named.entries[0].pinned,true);
     await store.save('1',emptyQueues());assert.deepEqual(await store.load('1'),emptyQueues());
   }finally{await rm(folder,{recursive:true,force:true});}
 });

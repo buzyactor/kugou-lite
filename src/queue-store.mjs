@@ -20,7 +20,8 @@ function normalize(snapshot) {
   const entries=snapshot.entries.map(entry=>{
     if(!Number.isSafeInteger(entry.id)||entry.id<=0||ids.has(entry.id)||typeof entry.source!=='string'||entry.source.length>4096||typeof entry.title!=='string'||!Array.isArray(entry.tracks)||!entry.tracks.length||!Number.isInteger(entry.index)||entry.index<0||entry.index>=entry.tracks.length)throw Error('invalid queue');
     ids.add(entry.id);count+=entry.tracks.length;if(count>200000)throw Error('too many tracks');
-    return {id:entry.id,source:entry.source,title:clean(entry.title),index:entry.index,tracks:entry.tracks.map(metadata)};
+    if(entry.pinned!==undefined&&typeof entry.pinned!=='boolean')throw Error('invalid pin');
+    return {id:entry.id,source:entry.source,title:entry.title.replace(/[\x00-\x1f\x7f]/g,''),index:entry.index,tracks:entry.tracks.map(metadata),...(entry.pinned?{pinned:true}:{})};
   });
   for(const key of ['playingId','viewedId'])if(snapshot[key]!==null&&!ids.has(snapshot[key]))throw Error('invalid queue selection');
   return {entries,playingId:snapshot.playingId,viewedId:snapshot.viewedId};

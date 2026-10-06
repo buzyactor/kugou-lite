@@ -52,6 +52,52 @@ test('worker exposes high quality menu and accepts higher quality preferences',a
   }
 }));
 
+test('worker edits queues without interrupting unrelated playback, resumes edited order and persists names/pins',async()=>withWorker(async({send,queue,close,folder})=>{
+ await send('recommend');await send('play:2');await send('queue');
+ await send('songmenu:0');const move=await send('songaction:down');assert.ok(!move.some(e=>e.kind==='state'||e.kind==='error'));
+ let current=await queue();assert.equal(current.tracks[1].title,'daily0');assert.equal(current.tracks[2].active,true);
+ await send('songmenu:1');await send('songaction:remove');current=await queue();assert.equal(current.tracks[1].active,true);assert.equal(current.tracks[1].title,'daily2');
+ await send('songmenu:0');const prompt=await send('songaction:rename');const command=prompt.find(e=>e.kind==='text_prompt').command;
+ await send(command+JSON.stringify('常听队列'));await send('songmenu:0');await send('songaction:pin');assert.match((await queue()).title,/★ 常听队列/);
+ await send('discover');await send('songmenu:2');const inserted=await send('songaction:next');assert.ok(!inserted.some(e=>e.kind==='media'));
+ const next=await send('nexttrack');assert.equal(next.find(e=>e.kind==='media'&&e.fresh)?.song,'new2');
+ await send('queue');await send('songmenu:2');const removed=await send('songaction:remove');assert.ok(removed.some(e=>e.kind==='state'&&e.status==='Stopped'));
+ await close();const saved=JSON.parse(await readFile(join(folder,'play-history.json.queues'),'utf8')).accounts['1'];
+ assert.equal(saved.entries[0].title,'常听队列');assert.equal(saved.entries[0].pinned,true);assert.equal(saved.entries[0].tracks.length,4);
+}));
+
+test('play-next insertion overrides shuffle and single-repeat once without changing saved play mode',async()=>withWorker(async({send,child})=>{
+ for(const mode of ['single','shuffle']){
+  await send('recommend');await send('play:0');child.stdin.write('mode:'+mode+'\n');
+  await send('discover');await send('songmenu:2');await send('songaction:next');
+  const next=await send('autonext');assert.equal(next.find(e=>e.kind==='media'&&e.fresh)?.song,'new2',mode);
+  if(mode==='single')assert.equal((await send('autonext')).find(e=>e.kind==='media'&&e.fresh)?.song,'new2','single-repeat resumes after the scheduled next song');
+ }
+}));
+
+test('favorites support current/queue songs, cross-page batches, membership verification and confirmed removal',async()=>withWorker(async({send,queue})=>{
+ await send('pagesize:2');await send('recommend');await send('play:0');const before=await queue();
+ await send('favorite:current');let state=await send('openlist:0');assert.match(state.find(e=>e.kind==='actions').title,/已收藏 0\/1/);
+ let saved=await send('favoriteapply:add');assert.ok(saved.some(e=>e.kind==='fixture_write'&&e.count===1));assert.ok(saved.some(e=>e.kind==='status'&&/已核对/.test(e.message)));
+ assert.equal((await queue()).queueId,before.queueId);
+ await send('favorite:0');state=await send('openlist:0');assert.match(state.find(e=>e.kind==='actions').title,/已收藏 1\/1/);
+ assert.ok(!state.some(e=>e.kind==='fixture_write'));
+ assert.ok(!state.find(e=>e.kind==='actions').actions.some(a=>a.command==='favoriteapply:add'));
+ const removed=await send('favoriteapply:remove');assert.ok(removed.some(e=>e.kind==='fixture_write'&&e.action==='remove'&&e.count===1));
+ await send('recommend');await send('mark:0');await send('nextpage');await send('mark:1');
+ await send('favorite-batch');state=await send('openlist:0');assert.match(state.find(e=>e.kind==='actions').title,/已收藏 0\/2/);
+ saved=await send('favoriteapply:add');assert.ok(saved.some(e=>e.kind==='fixture_write'&&e.count===2));
+ assert.ok(saved.some(e=>e.kind==='tracks'&&e.page===2));assert.ok(saved.some(e=>e.kind==='marks'&&e.count===0));
+}));
+
+test('an unknown favorite write result consumes intent, then a new read sees the actual cloud result',async()=>withWorker(async({send})=>{
+ await send('recommend');await send('favorite:0');await send('openlist:0');
+ const failed=await send('favoriteapply:add');assert.equal(failed.filter(e=>e.kind==='fixture_write').length,1);assert.ok(failed.some(e=>e.kind==='error'));
+ const repeated=await send('favoriteapply:add');assert.ok(repeated.some(e=>e.kind==='error'));assert.ok(!repeated.some(e=>e.kind==='fixture_write'));
+ const checked=await send('openlist:0');assert.match(checked.find(e=>e.kind==='actions').title,/已收藏 1\/1/);
+ await send('switch:1');assert.ok(!(await send('favoriteapply:remove')).some(e=>e.kind==='fixture_write'));
+},{QUEUE_FAVORITE_FAIL:'1'}));
+
 test('playback popup quality apply keeps collection navigation and the playing queue',async()=>withWorker(async({send,queue})=>{
   await send('recommend');await send('play:0');
   const before=await queue();

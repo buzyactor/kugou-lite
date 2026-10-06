@@ -25,6 +25,7 @@ const routes = {
   '/user/playlist': 'user_playlist',
   '/playlist/track/all/new': 'playlist_track_all_new',
   '/playlist/tracks/add': 'playlist_tracks_add',
+  '/playlist/tracks/del': 'playlist_tracks_del',
   '/search/lyric': 'search_lyric',
   '/lyric': 'lyric',
   '/song/url': 'song_url',

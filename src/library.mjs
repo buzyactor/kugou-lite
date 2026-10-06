@@ -124,9 +124,10 @@ export async function loadLyrics(request, track, fetchImpl=fetch) {
 }
 export function favoriteParams(track, listid) {
   if(!/^\d+$/.test(listid)) throw new Error('歌单编号无效');
+  if(!/^[a-f\d]{32}$/i.test(track.hash??'')||/^0{32}$/.test(track.hash)||![track.albumId??'0',track.audioId??'0'].every(id=>/^\d+$/.test(String(id))&&Number.isSafeInteger(Number(id))))throw new Error('歌曲收藏参数无效');
   // 上游用逗号分隔多曲、竖线分隔字段，避免歌名改变解析边界。
   const name=clean(track.artist+' - '+track.title).replace(/[,|]/g,' ');
-  return new URLSearchParams({listid,data:[name,track.hash,track.albumId,track.audioId].join('|')});
+  return new URLSearchParams({listid,data:[name,track.hash,track.albumId??'0',track.audioId??'0'].join('|')});
 }
 export function coverUrl(raw,size=600) {
   try {

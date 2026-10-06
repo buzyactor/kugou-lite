@@ -51,7 +51,15 @@ pub fn song_row(index: usize, track: &Value, width: u16) -> Line<'static> {
     } else {
         0
     };
-    let prefix = format!(" {:>3}  ♪ ", index + 1);
+    let prefix = format!(
+        " {:>3}  {} ",
+        index + 1,
+        if track["marked"] == true {
+            "✓"
+        } else {
+            "♪"
+        }
+    );
     let title_width = width
         .saturating_sub(Line::from(prefix.as_str()).width() + artist_width + 11)
         .max(1);
