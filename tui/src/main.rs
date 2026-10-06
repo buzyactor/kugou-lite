@@ -5,6 +5,7 @@ mod home_art;
 mod kitty;
 mod lyrics;
 mod notifications;
+mod quality_menu;
 mod search_ui;
 mod settings;
 mod sort_menu;
@@ -210,6 +211,7 @@ fn run(
     let mut settings_selection = 0_usize;
     let mut settings_scroll = 0_usize;
     let mut theme_picker: Option<theme_picker::Picker> = None;
+    let mut quality_picker: Option<quality_menu::Picker> = None;
     let mut settings_category = 0_usize;
     let mut live_bitrate: Option<f64> = None;
     let mut help_scroll = 0_u16;
@@ -755,6 +757,8 @@ fn run(
                     &mut regions.lyric_text,
                     &mut lyric_scroll,
                 );
+                let button = ratatui::layout::Rect::new(areas[1].x + areas[1].width.saturating_sub(15), areas[1].y, areas[1].width.min(14), 1);
+                controls::button(frame, button, "音质 [S] ▾", "key:s", &mut regions);
             } else if qr.is_empty() && page_loaded && view=="catalog" && catalog_mode=="profile" {
                 let (body,_)=catalog_ui::layout(frame,areas[1],&catalog_mode,&catalog_type,&artist_tab,profile_tab,&artist_info,false,&mut regions);
                 catalog_ui::profile(frame,body,&artist_info,profile_tab,&mut profile_scroll,&mut regions);
@@ -986,6 +990,7 @@ fn run(
             let mut overlays = notifications.render(frame, areas[1], &settings, &mut regions);
             if let Some(picker) = theme_picker.as_mut() {overlays.push(picker.render(frame,&mut regions));}
             if let Some(picker)=sort_picker.as_ref() {overlays.push(picker.render(frame,&mut regions));}
+            if let Some(picker)=quality_picker.as_ref() {overlays.push(picker.render(frame,&mut regions,&settings.quality,&quality));}
             regions.icons.retain(|(r,_)| !overlays.iter().any(|o| r.intersection(*o).area()>0));
             regions.lyric_text.retain(|l| !overlays.iter().any(|o| l.rect.intersection(*o).area()>0));
             if hd_area.is_some_and(|r| overlays.iter().any(|o| r.intersection(*o).area()>0)) {hd_area=None;}
@@ -1045,6 +1050,12 @@ fn run(
                 }
                 Event::Mouse(mouse) if settings.mouse => {
                     let (x, y) = (mouse.column, mouse.row);
+                    if quality_picker.is_some() && !controls::contains(regions.quality_menu, x, y) {
+                        if matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left)) {
+                            quality_picker = None;
+                        }
+                        continue;
+                    }
                     if sort_picker.is_some() && !controls::contains(regions.sort_menu, x, y) {
                         continue;
                     }
@@ -1054,6 +1065,10 @@ fn run(
                     match mouse.kind {
                         MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
                             let down = mouse.kind == MouseEventKind::ScrollDown;
+                            if let Some(picker) = quality_picker.as_mut() {
+                                picker.move_key(if down { KeyCode::Down } else { KeyCode::Up });
+                                continue;
+                            }
                             if let Some(picker) = sort_picker.as_mut() {
                                 picker.move_key(if down { KeyCode::Down } else { KeyCode::Up });
                                 continue;
@@ -1160,6 +1175,24 @@ fn run(
                             let Some(action) = regions.hit(x, y) else {
                                 continue;
                             };
+                            if quality_picker.is_some() {
+                                if !busy {
+                                    if let Some(i) = action
+                                        .strip_prefix("quality-select:")
+                                        .and_then(|raw| raw.parse::<usize>().ok())
+                                    {
+                                        if let Some(id) = settings::QUALITIES.get(i) {
+                                            writeln!(
+                                                worker.0.stdin.as_mut().unwrap(),
+                                                "qualityapply:{id}"
+                                            )?;
+                                            busy = true;
+                                            quality_picker = None;
+                                        }
+                                    }
+                                }
+                                continue;
+                            }
                             if sort_picker.is_some() {
                                 if let Some(raw) = action.strip_prefix("sort-select:") {
                                     if let Ok(i) = raw.parse::<usize>() {
@@ -1278,6 +1311,20 @@ fn run(
             };
             {
                 if key.kind != KeyEventKind::Press {
+                    continue;
+                }
+                if let Some(picker) = quality_picker.as_mut() {
+                    match key.code {
+                        KeyCode::Esc | KeyCode::Char('s' | 'S') => quality_picker = None,
+                        KeyCode::Char('q' | 'Q') => return Ok(()),
+                        KeyCode::Enter | KeyCode::Char(' ') if !busy => {
+                            let id = settings::QUALITIES[picker.selected];
+                            writeln!(worker.0.stdin.as_mut().unwrap(), "qualityapply:{id}")?;
+                            busy = true;
+                            quality_picker = None;
+                        }
+                        _ => picker.move_key(key.code),
+                    }
                     continue;
                 }
                 if let Some(picker) = sort_picker.as_mut() {
@@ -1767,6 +1814,16 @@ fn run(
                     let input = worker.0.stdin.as_mut().unwrap();
                     writeln!(input, "favorite:{}", selection.selected().unwrap_or(0))?;
                     input.flush()?;
+                    continue;
+                }
+                if media_shown
+                    && !home
+                    && !settings_shown
+                    && !editing
+                    && matches!(key.code, KeyCode::Char('s' | 'S'))
+                {
+                    drag = None;
+                    quality_picker = Some(quality_menu::Picker::new(&settings.quality));
                     continue;
                 }
                 let command = match key.code {

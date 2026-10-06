@@ -43,6 +43,17 @@ test('worker exposes high quality menu and accepts higher quality preferences',a
   }
 }));
 
+test('playback popup quality apply keeps collection navigation and the playing queue',async()=>withWorker(async({send,queue})=>{
+  await send('recommend');await send('play:0');
+  const before=await queue();
+  const events=await send('qualityapply:viper_atmos');
+  assert.equal(events.find(e=>e.kind==='preferences').quality,'viper_atmos');
+  assert.ok(events.some(e=>e.kind==='media'&&e.fresh));
+  assert.ok(!events.some(e=>e.kind==='playlists'||e.kind==='queue'));
+  assert.equal((await queue()).queueId,before.queueId);
+  assert.equal((await queue()).queueCount,1);
+}));
+
 test('worker retains queues, keeps browsing independent, rolls back failed play, paginates and clears on account switch',{timeout:15000},async()=>withWorker(async({send,queue,child,stderr})=>{
     await send('recommend');const firstPlay=await send('play:0');assert.ok(!firstPlay.some(e=>e.kind==='error'),JSON.stringify(firstPlay));
     const a=await queue();assert.equal(a.queueCount,1);assert.equal(a.tracks[0].title,'daily0');

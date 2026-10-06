@@ -345,11 +345,13 @@ async function run(command) {
     lists=qualities.map(q=>({title:qualityLabel(q),description:q===preferredQuality?'当前请求档位':'选择后立即应用到当前歌曲',action:'quality:'+q,icon:q===preferredQuality?'●':'○'}));
     return listEvent();
   }
-  if(command.startsWith('quality:')){
-    const chosen=command.slice(8);if(!qualities.includes(chosen))return;
+  if(command.startsWith('quality:')||command.startsWith('qualityapply:')){
+    const stay=command.startsWith('qualityapply:');
+    const chosen=command.slice(stay?13:8);if(!qualities.includes(chosen))return;
     preferredQuality=chosen;sendPreferences();
     if(player.child&&queue[queueIndex])await playTrack(queue[queueIndex],playbackStatus==='Paused',position);
-    return run('quality');
+    if(!stay)return run('quality');
+    return;
   }
   if(command.startsWith('queueplay:')){
     const index=(page-1)*pageSize+Number(command.slice(10));

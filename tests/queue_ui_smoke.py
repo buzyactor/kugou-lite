@@ -80,9 +80,35 @@ with tempfile.TemporaryDirectory(prefix='kugou-queue-ui-') as folder:
         send(b's')
         assert all(contains(label) for label in ['Hi-Res', '蝰蛇超清', '蝰蛇全景声']), 'higher quality menu missing'
         send(b'\x1b[B' * 3); send(b'\r')
+        send(b'\t')
+        assert contains('音质 [S]'), 'playback quality button missing'
+        send(b's')
+        assert contains('切换音质'), 'S left the playback page instead of showing popup'
+        assert all(contains(label) for label in ['FLAC 无损', '320 kbps', '128 kbps', 'Hi-Res', '蝰蛇超清', '蝰蛇全景声'])
+        assert contains('当前请求：Hi-Res') and contains('实际播放：FLAC'), 'preferred/actual quality not distinguished'
+        send(b'\x1b[F'); send(b'\r')
+        assert contains('音质 [S]') and not contains('切换音质'), 'selection did not return to playback'
+        assert json.loads((config / 'config.json').read_text())['quality'] == 'viper_atmos'
+        lines=[str(screen.line(i)) for i in range(40)]
+        y=next(i for i,line in enumerate(lines) if '音质 [S]' in line)
+        # Screen strings use code points; calculate terminal cells before the button.
+        prefix=lines[y].split('音质 [S]')[0]
+        x=sum(2 if ord(c)>0x2e80 else 1 for c in prefix)
+        send(f'\x1b[<0;{x+1};{y+1}M'.encode())
+        assert contains('切换音质'), 'playback quality button click failed'
+        send(b'\x1b')
+        assert not contains('切换音质'), 'Esc did not close popup'
+        assert json.loads((config / 'config.json').read_text())['quality'] == 'viper_atmos'
+        send(b's')
+        lines=[str(screen.line(i)) for i in range(40)]
+        y=next(i for i,line in enumerate(lines) if '蝰蛇超清' in line)
+        prefix=lines[y].split('蝰蛇超清')[0]
+        x=sum(2 if ord(c)>0x2e80 else 1 for c in prefix)
+        send(f'\x1b[<0;{x+1};{y+1}M'.encode())
+        assert contains('音质 [S]') and not contains('切换音质'), 'popup mouse selection failed'
         send(b'q'); process.wait(timeout=3)
         assert process.returncode == 0
-        assert json.loads((config / 'config.json').read_text())['quality'] == 'high', 'selected quality not persisted'
+        assert json.loads((config / 'config.json').read_text())['quality'] == 'viper_clear', 'selected quality not persisted'
         print('Queue UI: real worker + TUI create/retain, N switching, Delete inactive/playing/final, empty state and clean exit passed')
     finally:
         if process.poll() is None:

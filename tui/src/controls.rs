@@ -22,6 +22,7 @@ pub struct Regions {
     pub help: Rect,
     pub theme_menu: Rect,
     pub sort_menu: Rect,
+    pub quality_menu: Rect,
     pub list: Rect,
     pub profile: Rect,
     pub icons: Vec<(Rect, String)>,
