@@ -22,6 +22,7 @@ pub struct Settings {
     pub kotonoha_endpoint: String,
     pub kotonoha_clock_ms: u64,
     pub rich_search: bool,
+    pub clear_queues_on_exit: bool,
     pub in_app_notifications: bool,
     pub desktop_notifications: bool,
     pub track_notifications: bool,
@@ -50,6 +51,7 @@ impl Default for Settings {
             kotonoha_endpoint: "ws://127.0.0.1:28745/kotonoha/adapter".into(),
             kotonoha_clock_ms: 1000,
             rich_search: true,
+            clear_queues_on_exit: false,
             in_app_notifications: true,
             desktop_notifications: true,
             track_notifications: true,
@@ -112,6 +114,7 @@ impl Settings {
         for key in [
             "kotonoha_enabled",
             "rich_search",
+            "clear_queues_on_exit",
             "in_app_notifications",
             "desktop_notifications",
             "track_notifications",
@@ -182,6 +185,7 @@ impl Settings {
                 .into(),
             kotonoha_clock_ms: v["kotonoha_clock_ms"].as_u64().unwrap_or(1000),
             rich_search: v["rich_search"].as_bool().unwrap_or(true),
+            clear_queues_on_exit: v["clear_queues_on_exit"].as_bool().unwrap_or(false),
             in_app_notifications: v["in_app_notifications"].as_bool().unwrap_or(true),
             desktop_notifications: v["desktop_notifications"].as_bool().unwrap_or(true),
             track_notifications: v["track_notifications"].as_bool().unwrap_or(true),
@@ -231,7 +235,7 @@ impl Settings {
         crate::theme::save(self.theme)
     }
     pub fn json(&self) -> Value {
-        json!({"kotonoha_enabled":self.kotonoha_enabled,"kotonoha_endpoint":self.kotonoha_endpoint,"kotonoha_clock_ms":self.kotonoha_clock_ms,"rich_search":self.rich_search,"in_app_notifications":self.in_app_notifications,"desktop_notifications":self.desktop_notifications,"track_notifications":self.track_notifications,"notification_timeout":self.notification_timeout,"schema_version":1,"status_rows":self.status_rows,"status_items":self.status_items,"scale_lyrics":self.scale_lyrics,"large_lyric":self.large_lyric,"lyric_align":self.lyric_align,"sidebar":self.sidebar,"translation":self.translation,"hd":self.hd,"volume":self.volume,"quality":self.quality,"mode":self.mode,"mouse":self.mouse,"large_icons":self.large_icons,"cava_style":self.cava_style,"lyric_return":self.lyric_return})
+        json!({"kotonoha_enabled":self.kotonoha_enabled,"kotonoha_endpoint":self.kotonoha_endpoint,"kotonoha_clock_ms":self.kotonoha_clock_ms,"rich_search":self.rich_search,"clear_queues_on_exit":self.clear_queues_on_exit,"in_app_notifications":self.in_app_notifications,"desktop_notifications":self.desktop_notifications,"track_notifications":self.track_notifications,"notification_timeout":self.notification_timeout,"schema_version":1,"status_rows":self.status_rows,"status_items":self.status_items,"scale_lyrics":self.scale_lyrics,"large_lyric":self.large_lyric,"lyric_align":self.lyric_align,"sidebar":self.sidebar,"translation":self.translation,"hd":self.hd,"volume":self.volume,"quality":self.quality,"mode":self.mode,"mouse":self.mouse,"large_icons":self.large_icons,"cava_style":self.cava_style,"lyric_return":self.lyric_return})
     }
 }
 fn valid_kotonoha_endpoint(endpoint: &str) -> bool {
@@ -382,6 +386,7 @@ mod tests {
             r#"{"scale_lyrics":"yes"}"#,
             r#"{"lyric_align":3}"#,
             r#"{"quality":"aac"}"#,
+            r#"{"clear_queues_on_exit":"yes"}"#,
         ] {
             assert!(Settings::parse(text).is_err(), "{text}");
         }

@@ -55,7 +55,7 @@
 - 默认FLAC，实测编码校验；按用户2026-10-06新要求，FLAC不可用自动尝试320/128 MP3。S菜单及设置新增high/viper_clear/viper_atmos（Hi-Res/蝰蛇超清/全景声），增强档位→high→flac→320→128，偏好保持。试听永不播放；网络/认证/ffprobe失败不当档位缺失。媒体URL和显示文件名后缀不能当音质依据；命令行probe仍严格无损。每个播放器独立音量，+/-调节；实时码率进最底部状态栏。
 - 播放界面右上角音质[S]按钮及S打开六档音质弹窗，显示请求与实际编码，键盘/鼠标选择、Esc/外部点击取消，应用后留在播放页。qualityapply worker命令不切换目录，继续保留位置/暂停；其他页面S仍用原音质列表。弹窗实现tui/src/quality_menu.rs，Kitty图像/放大文字覆盖区清理复用overlay保护。
 - 底部进度鼠标拖动、前后/播放图标可点；歌词完整换行、英文词/符号相邻不凭空插空格、非当前原文+译文紧凑成组，不能超出歌词区域或污染CAVA边框。
-- 队列历史：不同集合/排序结果保留旧队列、新建队列；B打开，N循环查看、Enter切换播放、Delete删除正在查看的队列。浏览不打断音乐，删除播放队列才停止。每日推荐/新歌/排行榜/个人及收藏/推荐及Hi-Res公开歌单/专辑播放前汇总完整集合，跨UI页不拆队列；歌手复用已获取目录，搜索歌曲仍按页。仅本次运行，账号切换/重新扫码清空。实现src/queue-history.mjs与worker，queue-worker.test.mjs和queue_ui_smoke.py覆盖45首跨页及九类集合。
+- 队列历史：不同集合/排序结果保留旧队列、新建队列；B打开，N循环查看、Enter切换播放、Delete删除正在查看的队列。浏览不打断音乐，删除播放队列才停止。每日推荐/新歌/排行榜/个人及收藏/推荐及Hi-Res公开歌单/专辑播放前汇总完整集合，跨UI页不拆队列；歌手复用已获取目录，搜索歌曲仍按页。默认跨启动保留，按账号保存.local/queues.json；新src/queue-store.mjs白名单元数据/原子写入/账号锁/600权限，变化后保存、关闭等待保存，启动恢复但不自动播放。账号切换/重扫码先保存原队列再恢复对应账号；设置→播放增加clear_queues_on_exit（默认false），开启后退出只清当前账号全部队列，已播放历史保留。QueueHistory.revision避免无变化的翻页反复写入；损坏不覆盖。同账号多个窗口最后保存为准。实现src/queue-history.mjs与worker，queue-worker.test.mjs和queue_ui_smoke.py覆盖45首跨页及九类集合。
 - 已播放历史[E]：侧栏/顶栏入口，实际Playing后记录，Enter重播、F收藏。src/play-history.mjs按账号保存最近500首于.local/play-history.json，重复播放移至最前，重启保留；白名单元数据、600权限、原子写入/账号锁，保存失败不阻断播放，损坏文件保留。
 - 历史重播封面修复：src/library.mjs新增readCachedCover/cachedCoverPixels，worker播放时先读.local/covers/<hash>.png，在fresh media直接携带缓存高清图，方块图从缓存解码；未命中才下载，MPRIS共用缓存。历史记录URL保存保留{size}；coverUrl兼容旧%7Bsize%7D记录，不清历史。缓存仍最多64张。
 - 应用和Linux通知使用原高清小狼PNG。tools/install-desktop.mjs已安装当前用户kugou-lite.desktop与图标，Kitty带应用class启动；通知和MPRIS关联DesktopEntry=kugou-lite。真实DBus通知ID1148接受，GPU/通知服务视觉效果未由用户验收。

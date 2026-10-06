@@ -24,6 +24,7 @@ with tempfile.TemporaryDirectory(prefix='kugou-config-') as folder:
         assert all(k in theme['lyrics'] for k in ['completed','past','word','pending','upcoming'])
         assert all(k in theme['progress'] for k in ['track','played','thumb'])
     config['volume'] = 42
+    config['clear_queues_on_exit'] = True
     config['kotonoha_enabled'] = True
     config['kotonoha_endpoint'] = 'ws://127.0.0.1:28746/kotonoha/adapter'
     config['kotonoha_clock_ms'] = 750
@@ -31,6 +32,7 @@ with tempfile.TemporaryDirectory(prefix='kugou-config-') as folder:
     (root / 'import.json').write_text(json.dumps(config))
     run('--import-config', root / 'import.json')
     assert json.loads((app / 'config.json').read_text())['volume'] == 42
+    assert json.loads((app / 'config.json').read_text())['clear_queues_on_exit'] is True
     for quality in ['high', 'viper_clear', 'viper_atmos', 'flac', '320', '128']:
         config['quality'] = quality
         (root / 'import.json').write_text(json.dumps(config))

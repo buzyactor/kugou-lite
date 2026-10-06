@@ -49,7 +49,7 @@ export class Accounts {
       const removed=[];
       for(const name of await readdir(this.directory)) {
         const credential=/^(?:accounts?|device)\.json(?:$|[.])/.test(name);
-        const artifacts=/^(?:login\.html|(?:vip-(?:baseline|latest)|playback-latest)\.json|kotonoha\.log(?:\.1)?|covers)$/.test(name);
+        const artifacts=/^(?:login\.html|(?:vip-(?:baseline|latest)|playback-latest|play-history|queues)\.json|kotonoha\.log(?:\.1)?|covers)$/.test(name);
         if(!credential&&!artifacts)continue;
         await rm(path.join(this.directory,name),{recursive:true,force:true});removed.push(name);
       }

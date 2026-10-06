@@ -1,5 +1,6 @@
 import {SortedPlaylists,sortChoices,sortedQueue} from '../src/playlist-sort.mjs';
 import {QueueHistory} from '../src/queue-history.mjs';
+import {QueueStore,emptyQueues} from '../src/queue-store.mjs';
 import {PlayHistory} from '../src/play-history.mjs';
 import {KotonohaAdapter} from '../src/kotonoha-adapter.mjs';
 import {appendFile,mkdir,stat,rename} from 'node:fs/promises';
@@ -42,6 +43,7 @@ let busy = false, closing = false, cancelGeneration=0;
 let tracks = [], lists = [], pendingFavorite = null;
 let queue=[],queueIndex=-1,playbackStatus='Stopped',position=0,preferredQuality='flac',playMode='sequence',pendingAuto=false;
 const queueHistory=new QueueHistory();
+let queueOwner=null,savedQueueRevision=0,clearQueuesOnExit=false,exitTask=null;
 const queueState=()=>({next:nextIndex(queueIndex,queue.length,playMode)!==null,previous:nextIndex(queueIndex,queue.length,playMode,-1)!==null});
 const sendPreferences=()=>{emit({kind:'preferences',quality:preferredQuality,mode:playMode});desktop.update({...queueState(),loop:playMode==='single'?'Track':playMode==='loop'?'Playlist':'None',shuffle:playMode==='shuffle'});};
 let view = 'search', keyword = '', page = 1, playlistId = null, generation = 0;
@@ -82,6 +84,21 @@ async function playbackCollection(){
  return {rows:null,source:JSON.stringify([view,keyword,page]),title:pageTitle+` · 第 ${page} 页`};
 }
 const accounts = new Accounts(directory);
+const queueStore=new QueueStore(directory+'queues.json',action=>accounts.withLock(action));
+async function saveQueues(clear=false){
+  if(!queueOwner||(!clear&&queueHistory.revision===savedQueueRevision))return;
+  const revision=queueHistory.revision;
+  try{await queueStore.save(queueOwner,clear?emptyQueues():queueHistory.snapshot());savedQueueRevision=revision;}
+  catch{emit({kind:'status',message:'播放列表无法保存；原文件已保留，播放仍可继续'});}
+}
+async function restoreQueues(){
+  let userid;try{userid=(await accounts.current()).userid;}catch{return;}
+  if(queueOwner===userid)return;
+  queueOwner=userid;
+  try{queueHistory.restore(await queueStore.load(userid));savedQueueRevision=queueHistory.revision;
+    queue=queueHistory.playing?.tracks??[];queueIndex=queueHistory.playing?.index??-1;
+  }catch{queueHistory.clear();queue=[];queueIndex=-1;emit({kind:'status',message:'保存的播放列表无法恢复；原文件已保留'});}
+}
 const playedHistory=new PlayHistory(directory+'play-history.json',action=>accounts.withLock(action));
 let pendingHistoryTrack=null,historyWrites=Promise.resolve();
 const discovery=new Discovery();
@@ -225,6 +242,7 @@ async function syncNames() {
 }
 async function sendAccounts() { emit({kind:'accounts',accounts:await accounts.summary()});void syncNames().catch(()=>{}); }
 async function restore() {
+  await restoreQueues();
   const summary = await accounts.summary();
   const active = summary.find(a=>a.active);
   if(active) { await accounts.update(()=>{}); emit({kind:'account',label:active.label});emit({kind:'status',message:'已恢复保存账号，无需重复扫码；登录状态会自动维护'}); }
@@ -248,8 +266,8 @@ async function pageLoad(next) {
     const rows=items.slice((next-1)*pageSize,next*pageSize);page=next;
     const ordinal=queueHistory.entries.findIndex(item=>item.id===entry?.id)+1;
     emit({kind:'queue',page,resized:resizing,queueId:entry?.id??null,queueCount:queueHistory.entries.length,
-      title:entry?`队列 ${ordinal}/${queueHistory.entries.length} · ${entry.title} · ${items.length} 首${entry.id===queueHistory.playingId?' · 当前播放':''}`:'队列历史为空',
-      tracks:rows.map((r,i)=>({...r,number:(page-1)*pageSize+i+1,active:entry.id===queueHistory.playingId&&(page-1)*pageSize+i===queueIndex,remembered:(page-1)*pageSize+i===entry.index}))});return;
+      title:entry?`队列 ${ordinal}/${queueHistory.entries.length} · ${entry.title} · ${items.length} 首${entry.id===queueHistory.playingId?(playbackStatus==='Stopped'?' · 当前队列':' · 当前播放'):''}`:'队列历史为空',
+      tracks:rows.map((r,i)=>({...r,number:(page-1)*pageSize+i+1,active:playbackStatus!=='Stopped'&&entry.id===queueHistory.playingId&&(page-1)*pageSize+i===queueIndex,remembered:(page-1)*pageSize+i===entry.index}))});return;
   }
   const publicCollection=section==='search';
  const request=route=>publicCollection?publicRead(route):session.request(route);
@@ -286,7 +304,12 @@ const player = new Player(message => emit({ kind: 'status', message }), {
   }else spectrum.stop();}
 });
 process.on('exit', () => {kotonoha.close();player.stop();spectrum.stop();desktop.close();});
-async function closeWorker() { if(!closing){closing=true;pendingHistoryTrack=null;cancelGeneration++;generation++;player.stop();kotonoha.close();spectrum.stop();desktop.close();}await Promise.all([adapterLogs,historyWrites]);if(!busy)process.exit(0); }
+async function closeWorker() {
+  if(!closing){closing=true;pendingHistoryTrack=null;cancelGeneration++;generation++;player.stop();kotonoha.close();spectrum.stop();desktop.close();}
+  if(busy)return;
+  if(!exitTask)exitTask=(async()=>{await saveQueues(clearQueuesOnExit);await Promise.all([adapterLogs,historyWrites]);process.exit(0);})();
+  await exitTask;
+}
 process.on('SIGTERM', closeWorker);
 async function run(command) {
   if(command.startsWith('sort:')) {
@@ -367,12 +390,14 @@ async function run(command) {
   if(command==='maintain') {try{await session.maintain();}catch{/* Background failure must not remove an account. */}return;}
   if(command==='accounts') {section='';view='accounts';pendingFavorite=null;return sendAccounts();}
   if(command.startsWith('deleteaccount:')) {
+    await saveQueues();
     const wasActive=await accounts.remove(command.slice(14));
-    if(wasActive){history.clear();sortedPlaylists.clear();discovery.clear();userPlaylists.clear();section='';player.stop();pendingHistoryTrack=null;pendingAuto=false;queue=[];queueIndex=-1;queueHistory.clear();generation++;tracks=[];lists=[];pendingFavorite=null;desktop.update({track:null,artUrl:'',...queueState()});kotonoha.clearTrack();emit({kind:'media',lyrics:[],pixels:[],title:''});}
+    if(wasActive){history.clear();sortedPlaylists.clear();discovery.clear();userPlaylists.clear();section='';player.stop();pendingHistoryTrack=null;pendingAuto=false;queue=[];queueIndex=-1;queueHistory.clear();queueOwner=null;generation++;tracks=[];lists=[];pendingFavorite=null;desktop.update({track:null,artUrl:'',...queueState()});kotonoha.clearTrack();emit({kind:'media',lyrics:[],pixels:[],title:''});}
     view='accounts';await restore();await sendAccounts();emit({kind:'status',message:'已删除本机保存的账号'});return;
   }
   if(command.startsWith('switch:')) {
-    await accounts.select(Number(command.slice(7)));history.clear();sortedPlaylists.clear();discovery.clear();userPlaylists.clear();section='';player.stop();pendingHistoryTrack=null;pendingAuto=false;queue=[];queueIndex=-1;queueHistory.clear();desktop.update({track:null,artUrl:'',...queueState()});kotonoha.clearTrack();generation++;tracks=[];lists=[];pendingFavorite=null;view='accounts';
+    await saveQueues();
+    await accounts.select(Number(command.slice(7)));history.clear();sortedPlaylists.clear();discovery.clear();userPlaylists.clear();section='';player.stop();pendingHistoryTrack=null;pendingAuto=false;queue=[];queueIndex=-1;queueHistory.clear();queueOwner=null;desktop.update({track:null,artUrl:'',...queueState()});kotonoha.clearTrack();generation++;tracks=[];lists=[];pendingFavorite=null;view='accounts';
     emit({kind:'media',lyrics:[],pixels:[],title:''});await restore();return sendAccounts();
   }
   if(command==='nextpage'||command==='prevpage') return pageLoad(command==='nextpage'?page+1:Math.max(1,page-1));
@@ -468,11 +493,12 @@ async function run(command) {
       state = result.state;
       if (state === 'expired') throw new Error('二维码过期，请按 L 重新生成');
       if (result.account) {
+        await saveQueues();
         await accounts.save({...identity,...result.account,loginProvider:LOGIN_PROVIDER});
         // Keep the freshly scanned credential; renew only when due or confirmed rejected.
         if(loginRevision!==cancelGeneration)return;
         history.clear();sortedPlaylists.clear();discovery.clear();userPlaylists.clear();section='';
-        player.stop();pendingHistoryTrack=null;pendingAuto=false;queue=[];queueIndex=-1;queueHistory.clear();desktop.update({track:null,artUrl:'',...queueState()});kotonoha.clearTrack();generation++;tracks=[];lists=[];pendingFavorite=null;view='accounts';
+        player.stop();pendingHistoryTrack=null;pendingAuto=false;queue=[];queueIndex=-1;queueHistory.clear();queueOwner=null;desktop.update({track:null,artUrl:'',...queueState()});kotonoha.clearTrack();generation++;tracks=[];lists=[];pendingFavorite=null;view='accounts';
         emit({kind:'media',lyrics:[],pixels:[],title:''});
         await restore();
         emit({ kind: 'clear_qr' });
@@ -530,6 +556,7 @@ async function dispatch(line) {
   if(line.startsWith('kotonoha:')){try{kotonoha.configure(JSON.parse(line.slice(9)));}catch{emit({kind:'error',message:'Kotonoha 配置无效；播放器仍可使用'});}return;}
   if(line==='searchhome'){void loadSearchHome();return;}
   if(line.startsWith('suggestions:')){suggestWanted=line.slice(12).trim().slice(0,100);if(!suggestRunning)void suggestLoop();return;}
+  if(line.startsWith('queuepolicy:')){const value=line.slice(12);if(['0','1'].includes(value))clearQueuesOnExit=value==='1';return;}
   if(line.startsWith('preferences:')){const [,quality,mode]=line.split(':');if(qualities.includes(quality))preferredQuality=quality;if(modes.includes(mode))playMode=mode;sendPreferences();return;}
   if(line==='order'){playMode=modes[(modes.indexOf(playMode)+1)%modes.length];sendPreferences();return;}
   if(line.startsWith('mode:')){const mode=line.slice(5);if(modes.includes(mode)){playMode=mode;sendPreferences();}return;}
@@ -562,13 +589,14 @@ async function dispatch(line) {
     resizing=line==='resize';
     if(['accounts','playlists','recommend','discover','quality','queue','history','sectiontoggle','sectionranks'].includes(line)||line.startsWith('search:')||line.startsWith('openlist:')||line.startsWith('openentity:')||line==='artistprofile') {history.push(snapshot(),focus);focus={selected:0,offset:0};}
     if(['accounts','playlists','recommend','discover','quality','queue','history','login'].includes(line)||['search:','switch:','deleteaccount:'].some(prefix=>line.startsWith(prefix))){collectionEpoch++;catalogEpoch++;collectionInfo=null;collectionKey='';}
+    await restoreQueues();
     await run(line.trim());
     if(view==='queue'&&['queueplay:','nexttrack','prevtrack','autonext','resume'].some(command=>line.startsWith(command))){
       queueHistory.update(queueIndex);resizing=true;await pageLoad(page);
     }
   }
   catch (error) { if(/读取已取消/.test(error.message))return;emit({ kind: 'clear_qr' }); if(expired(error))emit({kind:'auth_required',message:'服务端仍拒绝当前凭证。账号已保留；稍后可重试，续期受保护间隔限制，按 L 可重新扫码。'});else emit({ kind: 'error', message: error.message }); }
-  finally { queueHistory.update(queueIndex);resizing=false;busy = false;desktop.update({busy:false,...queueState()}); emit({ kind: 'busy', value: false }); if(closing)await closeWorker();else if(pendingAuto){pendingAuto=false;void dispatch('autonext');}else if(pendingSize!==null)void dispatch('resize'); }
+  finally { queueHistory.update(queueIndex);await saveQueues();resizing=false;busy = false;desktop.update({busy:false,...queueState()}); emit({ kind: 'busy', value: false }); if(closing)await closeWorker();else if(pendingAuto){pendingAuto=false;void dispatch('autonext');}else if(pendingSize!==null)void dispatch('resize'); }
 }
 let suggestWanted='',suggestRunning=false;
 async function suggestLoop(){

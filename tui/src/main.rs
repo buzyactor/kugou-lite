@@ -78,7 +78,7 @@ struct Worker(Child);
 impl Drop for Worker {
     fn drop(&mut self) {
         drop(self.0.stdin.take());
-        for _ in 0..50 {
+        for _ in 0..300 {
             if matches!(self.0.try_wait(), Ok(Some(_))) {
                 return;
             }
@@ -248,6 +248,11 @@ fn run(
         "preferences:{}:{}",
         settings.quality,
         settings.mode
+    )?;
+    writeln!(
+        worker.0.stdin.as_mut().unwrap(),
+        "queuepolicy:{}",
+        u8::from(settings.clear_queues_on_exit)
     )?;
     writeln!(
         worker.0.stdin.as_mut().unwrap(),
@@ -2090,6 +2095,10 @@ fn home_hits(area: ratatui::layout::Rect, regions: &mut controls::Regions) {
 }
 fn change_setting(s: &mut settings::Settings, index: usize, forward: bool) -> Option<String> {
     match index {
+        31 => {
+            s.clear_queues_on_exit = !s.clear_queues_on_exit;
+            return Some(format!("queuepolicy:{}", u8::from(s.clear_queues_on_exit)));
+        }
         29 => {
             s.kotonoha_enabled = !s.kotonoha_enabled;
             return Some(format!("kotonoha:{}", s.kotonoha_json()));

@@ -566,6 +566,14 @@ pub fn settings_rows(s: &Settings) -> Vec<String> {
         }
     ));
     rows.push(format!("桌面歌词校准间隔  {} ms", s.kotonoha_clock_ms));
+    rows.push(format!(
+        "离开时清除播放列表  {}",
+        if s.clear_queues_on_exit {
+            "开启"
+        } else {
+            "关闭 · 保留列表"
+        }
+    ));
     rows
 }
 pub const SETTINGS_PAGES: [&str; 6] = ["外观", "歌词", "播放", "状态栏", "快捷键 / 配置", "通知"];
@@ -573,7 +581,7 @@ pub fn settings_indices(s: &Settings, page: usize) -> Vec<usize> {
     match page {
         0 => vec![0, 1, 3, 4, 10, 28],
         1 => vec![2, 6, 11, 12, 13, 29, 30],
-        2 => vec![5, 7, 8, 9],
+        2 => vec![5, 7, 8, 9, 31],
         3 => {
             let mut ids = vec![14];
             for id in &s.status_items {

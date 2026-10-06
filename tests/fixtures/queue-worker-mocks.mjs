@@ -2,8 +2,9 @@
 import {registerHooks} from 'node:module';
 const sources={
   'accounts.mjs':`export class Accounts {
-    async current(){return {userid:'1'};} async read(){return {accounts:[]};}
-    async summary(){return [];} async select(){} async remove(){return true;}
+    userid=process.env.QUEUE_USERID||'1';
+    async current(){return {userid:this.userid};} async read(){return {accounts:[]};}
+    async summary(){return [];} async select(index){this.userid=String(index+1);} async remove(){return true;}
     async withLock(action){return action();}
   }`,
   'session-reader.mjs':`export const expired=()=>false; export const retryRead=async(request,route)=>request(route);
@@ -45,6 +46,10 @@ registerHooks({load(url,context,nextLoad){
     if(name==='play-history.mjs')return {format:'module',shortCircuit:true,source:
       `import {PlayHistory as Original} from ${JSON.stringify(url+'?original')};
        export class PlayHistory extends Original {constructor(file,lock){if(!process.env.QUEUE_HISTORY_FILE)throw Error('Missing isolated history file');super(process.env.QUEUE_HISTORY_FILE,lock);}}`};
+    if(name==='queue-store.mjs')return {format:'module',shortCircuit:true,source:
+      `export * from ${JSON.stringify(url+'?original')};
+       import {QueueStore as Original} from ${JSON.stringify(url+'?original')};
+       export class QueueStore extends Original {constructor(file,lock){if(!process.env.QUEUE_HISTORY_FILE)throw Error('Missing isolated queues file');super(process.env.QUEUE_HISTORY_FILE+'.queues',lock);}}`};
     if(name==='catalog.mjs')return {format:'module',shortCircuit:true,source:
       `export * from ${JSON.stringify(url+'?original')};
        export const catalogSearch=async(request,query,type)=>type==='album'?[{kind:'album',albumId:'1',title:'Album',count:5}]:type==='artist'?[{kind:'artist',artistId:'1',title:'Artist'}]:[];

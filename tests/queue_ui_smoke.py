@@ -112,9 +112,16 @@ with tempfile.TemporaryDirectory(prefix='kugou-queue-ui-') as folder:
         x=sum(2 if ord(c)>0x2e80 else 1 for c in prefix)
         send(f'\x1b[<0;{x+1};{y+1}M'.encode())
         assert contains('音质 [S]') and not contains('切换音质'), 'popup mouse selection failed'
+        assert json.loads((config / 'config.json').read_text())['clear_queues_on_exit'] is False
+        send(b'?');send(b'3')
+        assert contains('离开时清除播放列表'), 'exit queue option missing from playback settings'
+        send(b'\x1b[B'*4);send(b'\r')
+        assert json.loads((config / 'config.json').read_text())['clear_queues_on_exit'] is True
         send(b'q'); process.wait(timeout=3)
         assert process.returncode == 0
         assert json.loads((config / 'config.json').read_text())['quality'] == 'viper_clear', 'selected quality not persisted'
+        assert json.loads((root/'play-history.json.queues').read_text())['accounts']['1']['entries'] == [], 'Q exit did not clear queues after enabling the option'
+        assert len(json.loads((root/'play-history.json').read_text())['accounts']['1']) == 3, 'clearing queues removed played history'
         print('Queue UI: real worker + TUI create/retain, N switching, Delete inactive/playing/final, empty state and clean exit passed')
     finally:
         if process.poll() is None:

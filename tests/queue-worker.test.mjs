@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {createInterface} from 'node:readline';
-import {mkdtemp,rm} from 'node:fs/promises';
+import {mkdtemp,rm,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {cacheCover} from '../src/library.mjs';
 
 async function withWorker(check,options={}){
-  const folder=await mkdtemp(join(tmpdir(),'kugou-queue-worker-'));
+  const folder=options.QUEUE_TEST_FOLDER??await mkdtemp(join(tmpdir(),'kugou-queue-worker-'));
   const env={...process.env,...options,QUEUE_HISTORY_FILE:join(folder,'play-history.json')};delete env.NODE_TEST_CONTEXT;
   const child=spawn(process.execPath,['--import',new URL('./fixtures/queue-worker-mocks.mjs',import.meta.url).href,'tools/tui-worker.mjs'],{stdio:['pipe','pipe','pipe'],env});
   const events=[];let stderr='',waiter;
@@ -27,10 +27,18 @@ async function withWorker(check,options={}){
     return events.slice(offset);
   }
   const queue=async(command='queue')=>(await send(command)).find(event=>event.kind==='queue');
-  try{await check({send,queue,child,folder,stderr:()=>stderr});}
+  const close=async()=>{
+    if(child.exitCode!==null)return;
+    await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>{child.kill('SIGKILL');reject(Error('Worker exit timeout'));},2500);
+      child.once('exit',code=>{clearTimeout(timer);code===0?resolve():reject(Error('Worker exit '+code));});
+      child.stdin.end();
+    });
+  };
+  try{await check({send,queue,child,folder,close,stderr:()=>stderr});}
   finally{
     child.stdin.end();if(child.exitCode===null)await new Promise(resolve=>{child.once('exit',resolve);child.kill('SIGTERM');});
-    await rm(folder,{recursive:true,force:true});
+    if(!options.QUEUE_TEST_FOLDER)await rm(folder,{recursive:true,force:true});
   }
 }
 
@@ -65,7 +73,34 @@ test('history replay immediately sends the cached cover even without a remote co
   assert.ok(events.filter(e=>e.kind==='media').every(e=>e.png===png));
 } ,{QUEUE_EXPECT_CACHED_COVER:'1'}));
 
-test('worker retains queues, keeps browsing independent, rolls back failed play, paginates and clears on account switch',{timeout:15000},async()=>withWorker(async({send,queue,child,stderr})=>{
+test('worker saves all queues across restarts by default, isolates accounts and clears only on opted-in exit',async()=>{
+  const folder=await mkdtemp(join(tmpdir(),'kugou-worker-restart-')),options={QUEUE_TEST_FOLDER:folder};
+  try{
+    await withWorker(async({send,queue,close})=>{
+      await send('recommend');await send('play:2');await send('discover');await send('play:0');
+      assert.equal((await queue()).queueCount,2);
+      await send('switch:1');assert.equal((await queue()).queueCount,0);
+      await send('recommend');await send('play:1');
+      await send('switch:0');assert.equal((await queue()).queueCount,2);
+      await close();
+    },options);
+    await withWorker(async({send,queue,child,close})=>{
+      const restored=await queue();assert.equal(restored.queueCount,2);assert.equal(restored.tracks[0].remembered,true);
+      assert.ok(!(await send('restore')).some(e=>e.kind==='media'&&e.fresh),'restore must not auto-play');
+      await send('queuenext');await send('queueplay:2');assert.equal((await queue()).tracks[2].active,true);
+      child.stdin.write('queuepolicy:1\n');await queue();
+      await close();
+    },options);
+    await withWorker(async({send,queue})=>{
+      assert.equal((await queue()).queueCount,0,'opted-in exit clears queues');
+      await send('switch:1');assert.equal((await queue()).queueCount,1,'other account retains its own queues');
+    },options);
+    const saved=JSON.parse(await readFile(join(folder,'play-history.json.queues'),'utf8'));
+    assert.equal(saved.accounts['1'].entries.length,0);assert.equal(saved.accounts['2'].entries.length,1);
+  }finally{await rm(folder,{recursive:true,force:true});}
+});
+
+test('worker retains queues, keeps browsing independent, rolls back failed play, paginates and restores on account switch',{timeout:15000},async()=>withWorker(async({send,queue,child,stderr})=>{
     await send('recommend');const firstPlay=await send('play:0');assert.ok(!firstPlay.some(e=>e.kind==='error'),JSON.stringify(firstPlay));
     const a=await queue();assert.equal(a.queueCount,1);assert.equal(a.tracks[0].title,'daily0');
     await send('recommend');await send('play:2');assert.equal((await queue()).queueCount,1);
@@ -98,7 +133,7 @@ test('worker retains queues, keeps browsing independent, rolls back failed play,
     assert.equal(stopped.find(e=>e.kind==='queue').queueCount,0);
     assert.equal((await queue('queuenext')).tracks.length,0);
     await send('recommend');await send('play:0');await send('switch:0');
-    assert.equal((await queue()).queueCount,0);
+    assert.equal((await queue()).queueCount,1,'same account restores its saved queue');
     assert.equal(stderr(),'');
 }));
 
