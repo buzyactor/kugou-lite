@@ -265,7 +265,7 @@ fn desktop(job: &Delivery, replace_id: &str) -> Result<String, String> {
     let mut cmd = Command::new("notify-send");
     cmd.args([
         "--app-name=Kugou Lite",
-        "--icon=audio-x-generic",
+        "--hint=string:desktop-entry:kugou-lite",
         "--print-id",
         "--expire-time",
         &(job.timeout * 1000).to_string(),
@@ -276,6 +276,9 @@ fn desktop(job: &Delivery, replace_id: &str) -> Result<String, String> {
             "normal"
         },
     ]);
+    cmd.arg("--icon").arg(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../复古终端像素狼头音乐图标.png"),
+    );
     if job.notice.track && !replace_id.is_empty() {
         cmd.args(["--replace-id", replace_id]);
     }

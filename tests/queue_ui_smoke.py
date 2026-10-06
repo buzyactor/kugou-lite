@@ -20,7 +20,7 @@ with tempfile.TemporaryDirectory(prefix='kugou-queue-ui-') as folder:
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 40, 160, 0, 0))
     env = dict(os.environ, TERM='xterm-kitty', KITTY_WINDOW_ID='queue-test',
-               PATH=str(root) + ':' + os.environ['PATH'], XDG_CONFIG_HOME=str(root / 'config'))
+               PATH=str(root) + ':' + os.environ['PATH'], XDG_CONFIG_HOME=str(root / 'config'), QUEUE_UI_COUNT='45', QUEUE_HISTORY_FILE=str(root / 'play-history.json'))
     process = subprocess.Popen(['./tui/target/debug/kugou-lite'], stdin=slave,
                                stdout=slave, stderr=slave, env=env, start_new_session=True)
     os.close(slave)
@@ -52,6 +52,10 @@ with tempfile.TemporaryDirectory(prefix='kugou-queue-ui-') as folder:
         send(b'r'); send(b'\r'); send(b'b')
         assert contains('队列 1/1'), 'first queue missing'
         assert contains('N 切换队列'), 'queue controls missing'
+        assert contains('45 首'), 'queue omitted songs from later pages'
+        send(b'r'); send(b'\x1b[C'); send(b'\r'); send(b'b')
+        assert contains('队列 1/1'), 'second UI page created a separate queue'
+        assert contains('45 首'), 'second-page queue is incomplete'
         send(b'd'); send(b'\r'); send(b'b')
         assert contains('队列 2/2'), 'second queue missing'
         before = len(output)
@@ -62,6 +66,17 @@ with tempfile.TemporaryDirectory(prefix='kugou-queue-ui-') as folder:
         send(b'\x1b[3~')
         assert contains('队列历史为空'), 'final deletion did not render empty state'
         send(b'n'); send(b'\x1b[3~')  # Empty history is harmless.
+        send(b'e')
+        assert contains('已播放历史 · 3 首'), 'history did not retain actually played songs'
+        assert contains('daily0') and contains('new0'), 'played songs missing from history'
+        send(b'\x1b[B' * 2); send(b'\r'); send(b'e')
+        assert contains('daily0'), 'history replay failed'
+        sidebar_row=next(i for i in range(40) if '历史' in str(screen.line(i))[:22])
+        send(f'\x1b[<0;10;{sidebar_row+1}M'.encode())
+        send(f'\x1b[<0;10;{sidebar_row+1}m'.encode())
+        assert contains('已播放历史'), 'sidebar history click failed'
+        send(b'u')
+        assert contains('历史') and contains('设置'), 'top navigation clipped the new history item or settings'
         send(b'q'); process.wait(timeout=3)
         assert process.returncode == 0
         print('Queue UI: real worker + TUI create/retain, N switching, Delete inactive/playing/final, empty state and clean exit passed')

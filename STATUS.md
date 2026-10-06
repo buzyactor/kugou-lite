@@ -28,7 +28,15 @@
 - 默认Cargo缓存已实际支持离线测试；不再使用已清理的/tmp/kugou-cargo。新功能需求等待用户具体说明，本次未读取账号凭据、清账号或验证线上登录保持时间。
 - Kotonoha只读核对HEAD仍为091296c，KOTONOHA_INTEGRATION.md未跟踪；未修改该独立仓库。
 
-## 最新功能：多队列历史（2026-10-06）
+## 最新修复与功能：完整集合队列、播放历史、高清应用图标（2026-10-06）
+
+- 修复上一版按UI页拆队列：每日推荐/新歌/排行榜/个人及收藏歌单/推荐及Hi-Res公开歌单首次播放前读取完整集合，专辑同样全量读取；歌手使用已获取目录。队列来源去掉UI页码，跨页/调整容量不重复建队列；选择歌曲使用全局索引并复核hash/audioId，修复从第二页选择却播放第一页面索引的问题。开放歌曲搜索仍按页建队列，歌手不完整目录明确标注已获取范围。
+- 全量读取复用有界缓存/排序读取器，失败或取消不安装半份队列、不切掉原播放。九类集合跨页、不同窗口容量、排序、失败保护通过真实worker回归；45首模拟每日推荐通过真实TUI两页播放、同一队列检查。
+- 侧栏/顶栏增加历史[E]，导航按10项适配；Enter重播、F收藏。新src/play-history.mjs按账号保存最近500首，重复曲目移至最前；mpv报告Playing后才写记录，未播放的队列曲目和失败播放不记入。文件.local/play-history.json为600权限，使用账号锁和原子写入，元数据白名单无token/播放URL，损坏不覆盖，保存失败不阻断播放。测试验证重启恢复、账号隔离、容量、损坏保护及真实worker/键鼠入口。
+- 桌面通知改为原高清PNG，附desktop-entry=kugou-lite；MPRIS增加DesktopEntry。新增tools/install-desktop.mjs，已安装/home/wolf/.local/share/applications/kugou-lite.desktop与/home/wolf/.local/share/kugou-lite/icon.png，Kitty启动参数带kugou-lite应用标识。desktop-file-validate通过，安装图片与原图字节相同；真实用户DBus发送带图通知返回ID1148，视觉效果仍以桌面服务实际显示为准。
+- 当前完整Node106项、Rust31项、cargo fmt、离线构建通过，二进制已更新；queue_ui_smoke（含45首跨页及历史键鼠/顶栏）、notifications_smoke（原图及desktop-entry参数）、ui_smoke、config_smoke、layout_regression_smoke及MPRIS4项通过。布局测试有Kitty缓存只读警告但退出0且全部断言通过。账号/API/队列音频依赖使用模拟数据，没有读取真实凭据、重登或提交线上收藏。
+
+## 历史功能：多队列历史（2026-10-06，分页规则已由上方修复替代）
 
 - 新增src/queue-history.mjs，播放另一份列表/页/排序结果时新建队列并保留旧队列和最后播放位置；同一当前队列内换歌不重复创建。沿用普通列表当前页、完整排序歌单全量作为队列的规则，不额外读取歌单。
 - B打开队列历史，N循环查看，Enter才切换播放；浏览不打断当前播放。Delete直接删除正在查看的队列：删除其他队列保留播放，删除播放队列停止mpv并清空MPRIS/Kotonoha/播放信息，删除最后一个后显示空状态。

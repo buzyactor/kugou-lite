@@ -327,7 +327,7 @@ pub fn footer(
         .collect::<Vec<_>>();
     f.render_widget(Paragraph::new(Line::from(spans)), r);
 }
-pub const NAV: [(&str, &str, &str, &str); 9] = [
+pub const NAV: [(&str, &str, &str, &str); 10] = [
     ("home", "主页", "h", "\u{f015}"),
     ("recommend", "推荐", "r", "\u{f004}"),
     ("discover", "发现", "d", "\u{f14e}"),
@@ -336,6 +336,7 @@ pub const NAV: [(&str, &str, &str, &str); 9] = [
     ("accounts", "账号", "a", "\u{f007}"),
     ("playing", "播放", "\t", "\u{f001}"),
     ("queue", "队列", "b", "\u{f0cb}"),
+    ("history", "历史", "e", "\u{f1da}"),
     ("settings", "设置", "?", "\u{f013}"),
 ];
 pub fn navigation(
@@ -365,16 +366,14 @@ pub fn navigation(
     f.render_widget(block, parts[0]);
     for (i, (id, name, key, glyph)) in NAV.iter().enumerate() {
         let r = if side {
-            let h = if inner.height >= 27 {
-                3
-            } else if inner.height >= 18 {
-                2
-            } else {
-                1
-            };
+            let h = (inner.height / NAV.len() as u16).clamp(1, 3);
             Rect::new(inner.x, inner.y + i as u16 * h, inner.width, h).intersection(inner)
         } else {
-            let cols = if area.width < 100 { 5 } else { 9 };
+            let cols = if area.width < 100 {
+                5
+            } else {
+                NAV.len() as u16
+            };
             let w = inner.width / cols;
             Rect::new(
                 inner.x + (i as u16 % cols) * w,

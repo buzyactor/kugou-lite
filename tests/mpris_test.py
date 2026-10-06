@@ -29,6 +29,7 @@ class MprisTests(unittest.TestCase):
         self.assertEqual(self.service.Get(m.PLAYER,'Position'),10200000)
 
     def test_introspection_and_queue_capabilities(self):
+        self.assertEqual(self.service.Get(m.ROOT,'DesktopEntry'),'kugou-lite')
         xml=self.service.Introspect('/org/mpris/MediaPlayer2',SimpleNamespace(list_exported_child_objects=lambda _:[]))
         node=m.ET.fromstring(xml)
         interface=node.find("interface[@name='org.mpris.MediaPlayer2.Player']")

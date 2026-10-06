@@ -520,7 +520,12 @@ fn run(
                     page_loaded = true;
                     page_title = value["title"].as_str().unwrap_or("歌曲").into();
                     page_description = "↑↓ 选择 · Enter 播放 · F 收藏 · ←→ 翻页".into();
-                    view = "tracks".into();
+                    view = if value["view"] == "history" {
+                        "history"
+                    } else {
+                        "tracks"
+                    }
+                    .into();
                     if value["resized"] != true {
                         media_shown = false;
                     }
@@ -1753,7 +1758,7 @@ fn run(
                 if matches!(key.code, KeyCode::Char('f' | 'F'))
                     && !home
                     && !media_shown
-                    && matches!(view.as_str(), "tracks" | "catalog")
+                    && matches!(view.as_str(), "tracks" | "catalog" | "history")
                     && !tracks.is_empty()
                     && (view != "catalog"
                         || tracks[selection.selected().unwrap_or(0)]["kind"] == "song")
@@ -1780,6 +1785,7 @@ fn run(
                     KeyCode::Char('r' | 'R' | '5') => "recommend",
                     KeyCode::Char('d' | 'D' | '6') => "discover",
                     KeyCode::Char('b' | 'B') => "queue",
+                    KeyCode::Char('e' | 'E') => "history",
                     KeyCode::Char('s' | 'S') => "quality",
                     KeyCode::Char('o' | 'O') => "order",
                     KeyCode::Char('[') => "prevtrack",
@@ -1827,6 +1833,7 @@ fn run(
                     "recommend",
                     "discover",
                     "queue",
+                    "history",
                     "quality",
                     "accounts",
                     "playlists",

@@ -617,6 +617,7 @@ pub fn import(path: &std::path::Path) -> std::io::Result<()> {
 /// Derive navigation hues from the imported palette, so custom themes need no
 /// extra hardcoded color fields. The same roles apply to sidebar and top tabs.
 pub fn section_index(id: &str) -> usize {
+    let id = if id == "history" { "queue" } else { id };
     SECTIONS
         .iter()
         .position(|key| *key == if id == "tracks" { "search" } else { id })

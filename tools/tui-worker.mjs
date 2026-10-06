@@ -1,5 +1,6 @@
 import {SortedPlaylists,sortChoices,sortedQueue} from '../src/playlist-sort.mjs';
 import {QueueHistory} from '../src/queue-history.mjs';
+import {PlayHistory} from '../src/play-history.mjs';
 import {KotonohaAdapter} from '../src/kotonoha-adapter.mjs';
 import {appendFile,mkdir,stat,rename} from 'node:fs/promises';
 import {randomInt} from 'node:crypto';
@@ -57,10 +58,32 @@ function sortLoader() {
  return (p,size)=>context.view==='playlist'?playlistTracks(request,context.list,p,size):discovery.load(request,context.kind,p,size,context.id);
 }
 async function collectionPage(next,mode=sortMode,seed=sortSeed) {
- const key=sortKey();
- return sortedPlaylists.page(key,sortLoader(),mode,next,pageSize,seed,{expected:(view==='playlist'||browseKind==='public')?Number(playlistId?.count)||0:0,cancelled:()=>closing||sortKey()!==key,progress:count=>emit({kind:'status',message:`正在读取完整歌单：${count} 首`})});
+ const key=sortKey(),revision=cancelGeneration;
+ return sortedPlaylists.page(key,sortLoader(),mode,next,pageSize,seed,{expected:(view==='playlist'||browseKind==='public')?Number(playlistId?.count)||0:0,cancelled:()=>closing||revision!==cancelGeneration||sortKey()!==key,progress:count=>emit({kind:'status',message:`正在读取完整歌单：${count} 首`})});
+}
+async function playbackCollection(){
+ if(canSort()){
+  await collectionPage(page);
+  return {rows:sortedPlaylists.all(sortKey(),sortMode,sortSeed),source:sortKey(),title:pageTitle};
+ }
+ if(view==='catalog'&&catalogMode==='artist'&&artistTab!=='albums'){
+  const entry=artistCatalog.cache.get(artistId);
+  if(!entry)throw new Error('歌手目录已失效，请刷新后重试');
+  return {rows:entry.songs,source:JSON.stringify(['artist',artistId]),title:pageTitle+(entry.info.complete?'':' · 已获取歌曲')};
+ }
+ if(view==='catalog'&&catalogMode==='album'){
+  const key=JSON.stringify(['album',albumId]),id=albumId,revision=cancelGeneration;
+  await sortedPlaylists.page(key,async(p,size)=>songRows((await publicRead(`/album/songs?id=${id}&page=${p}&pagesize=${size}`)).data?.songs).map(r=>({...r,kind:'song'})),
+   'default',page,pageSize,1,{expected:Number(collectionInfo?.count)||0,cancelled:()=>closing||revision!==cancelGeneration||albumId!==id,
+    progress:count=>emit({kind:'status',message:`正在读取完整专辑：${count} 首`})});
+  return {rows:sortedPlaylists.all(key,'default',1),source:key,title:pageTitle};
+ }
+ // Search results are open-ended pages, rather than a finite song collection.
+ return {rows:null,source:JSON.stringify([view,keyword,page]),title:pageTitle+` · 第 ${page} 页`};
 }
 const accounts = new Accounts(directory);
+const playedHistory=new PlayHistory(directory+'play-history.json',action=>accounts.withLock(action));
+let pendingHistoryTrack=null,historyWrites=Promise.resolve();
 const discovery=new Discovery();
 const userPlaylists=new UserPlaylists();
 const artistCatalog=new ArtistCatalog();
@@ -177,7 +200,7 @@ async function goBack(){
   if(collectionInfo)void enrichCollection();
   if(view==='catalog'){sendCatalog({selected:previous.selected,offset:previous.offset});if(artistProfile)void artistPhoto();return;}
   if(view==='accounts')return sendAccounts();
-  if(view==='queue')return pageLoad(page);
+  if(view==='queue'||view==='history')return pageLoad(page);
   const restored={selected:previous.selected,offset:previous.offset};
   if(['hub','options','playlists','favorite'].includes(view)||view==='browse'&&['recommended','hires','ranks'].includes(browseKind))return listEvent(restored);
   sendTracks(restored);
@@ -212,6 +235,13 @@ async function pageLoad(next) {
   if(view==='catalog')return catalogPage(next);
   let rows;
   if(view==='hub'||view==='options')return;
+  if(view==='history'){
+    await historyWrites;
+    const rows=await playedHistory.list((await accounts.current()).userid);
+    page=Math.max(1,Math.min(next,Math.ceil(rows.length/pageSize)||1));
+    tracks=rows.slice((page-1)*pageSize,page*pageSize);numberOffset=(page-1)*pageSize;
+    pageTitle=`已播放历史 · ${rows.length} 首`;sendTracks();return;
+  }
   if(view==='queue'){
     const entry=queueHistory.viewed,items=entry?.tracks??[];
     next=Math.max(1,Math.min(next,Math.ceil(items.length/pageSize)||1));
@@ -249,10 +279,14 @@ const player = new Player(message => emit({ kind: 'status', message }), {
   onSeekable:seekable=>desktop.update({seekable}),
   onEnded:()=>void dispatch('autonext'),
   onTime:seconds=>{position=seconds;kotonoha.observeTime(seconds);emit({kind:'time',seconds});desktop.update({seconds});},
-  onState:status=>{playbackStatus=status;kotonoha.observeState(status);emit({kind:'state',status});desktop.update({status,loaded:status!=='Stopped',...(status==='Stopped'?{seconds:0}:{})});if(status==='Playing')spectrum.start();else spectrum.stop();}
+  onState:status=>{playbackStatus=status;kotonoha.observeState(status);emit({kind:'state',status});desktop.update({status,loaded:status!=='Stopped',...(status==='Stopped'?{seconds:0}:{})});if(status==='Playing'){
+    spectrum.start();
+    const started=pendingHistoryTrack;pendingHistoryTrack=null;
+    if(started)historyWrites=historyWrites.then(()=>playedHistory.record(started.userid,started.track)).catch(()=>emit({kind:'status',message:'播放历史无法保存；播放仍可继续'}));
+  }else spectrum.stop();}
 });
 process.on('exit', () => {kotonoha.close();player.stop();spectrum.stop();desktop.close();});
-async function closeWorker() { if(!closing){closing=true;cancelGeneration++;generation++;player.stop();kotonoha.close();spectrum.stop();desktop.close();}await adapterLogs;if(!busy)process.exit(0); }
+async function closeWorker() { if(!closing){closing=true;pendingHistoryTrack=null;cancelGeneration++;generation++;player.stop();kotonoha.close();spectrum.stop();desktop.close();}await Promise.all([adapterLogs,historyWrites]);if(!busy)process.exit(0); }
 process.on('SIGTERM', closeWorker);
 async function run(command) {
   if(command.startsWith('sort:')) {
@@ -283,7 +317,7 @@ async function run(command) {
     const amount=Number(command.slice(12)),len=artistProfile.photos.length;if(!len||!Number.isFinite(amount))return;artistProfile.photoIndex=(artistProfile.photoIndex+amount+len)%len;void artistPhoto();return;
   }
   if(command.startsWith('openentity:')&&view==='catalog')return openEntity(Number(command.slice(11)));
-  if(command==='resize') {if(view==='search'&&!keyword)return;if(['search','playlist','playlists','favorite','browse','queue','catalog'].includes(view))return pageLoad(1);return;}
+  if(command==='resize') {if(view==='search'&&!keyword)return;if(['search','playlist','playlists','favorite','browse','queue','catalog','history'].includes(view))return pageLoad(1);return;}
   if(command==='recommend'||command==='discover')return openHub(command);
   if(command==='sectiontoggle'&&view==='playlists'&&!section){browseKind=browseKind==='created'?'collected':'created';pageTitle=browseKind==='created'?'我创建的歌单':'我收藏的歌单';return pageLoad(1);}
   if(command==='sectiontoggle'&&section)return openHub(section,nextSectionKind(section,browseKind));
@@ -294,11 +328,12 @@ async function run(command) {
   if(command==='refresh'&&view==='playlists'&&!section){userPlaylists.clear();return pageLoad(1);}
   if(command==='refresh'&&section){discovery.clear();return view==='hub'?openHub(section):pageLoad(1);}
   if(command==='queue'){queueHistory.open();view='queue';section='';return pageLoad(1);}
+  if(command==='history'){view='history';section='';collectionInfo=null;collectionKey='';pendingFavorite=null;return pageLoad(1);}
   if(command==='queuenext'&&view==='queue'){queueHistory.next();return pageLoad(1);}
   if(command==='queuedelete'&&view==='queue'){
     const removed=queueHistory.remove();
     if(removed?.wasPlaying){
-      pendingAuto=false;generation++;player.stop();queue=[];queueIndex=-1;position=0;
+      pendingHistoryTrack=null;pendingAuto=false;generation++;player.stop();queue=[];queueIndex=-1;position=0;
       desktop.update({track:null,artUrl:'',seconds:0,...queueState()});kotonoha.clearTrack();
       emit({kind:'quality'});emit({kind:'media',lyrics:[],pixels:[],title:''});emit({kind:'time',seconds:0});
     }
@@ -331,11 +366,11 @@ async function run(command) {
   if(command==='accounts') {section='';view='accounts';pendingFavorite=null;return sendAccounts();}
   if(command.startsWith('deleteaccount:')) {
     const wasActive=await accounts.remove(command.slice(14));
-    if(wasActive){history.clear();sortedPlaylists.clear();discovery.clear();userPlaylists.clear();section='';player.stop();pendingAuto=false;queue=[];queueIndex=-1;queueHistory.clear();generation++;tracks=[];lists=[];pendingFavorite=null;desktop.update({track:null,artUrl:'',...queueState()});kotonoha.clearTrack();emit({kind:'media',lyrics:[],pixels:[],title:''});}
+    if(wasActive){history.clear();sortedPlaylists.clear();discovery.clear();userPlaylists.clear();section='';player.stop();pendingHistoryTrack=null;pendingAuto=false;queue=[];queueIndex=-1;queueHistory.clear();generation++;tracks=[];lists=[];pendingFavorite=null;desktop.update({track:null,artUrl:'',...queueState()});kotonoha.clearTrack();emit({kind:'media',lyrics:[],pixels:[],title:''});}
     view='accounts';await restore();await sendAccounts();emit({kind:'status',message:'已删除本机保存的账号'});return;
   }
   if(command.startsWith('switch:')) {
-    await accounts.select(Number(command.slice(7)));history.clear();sortedPlaylists.clear();discovery.clear();userPlaylists.clear();section='';player.stop();pendingAuto=false;queue=[];queueIndex=-1;queueHistory.clear();desktop.update({track:null,artUrl:'',...queueState()});kotonoha.clearTrack();generation++;tracks=[];lists=[];pendingFavorite=null;view='accounts';
+    await accounts.select(Number(command.slice(7)));history.clear();sortedPlaylists.clear();discovery.clear();userPlaylists.clear();section='';player.stop();pendingHistoryTrack=null;pendingAuto=false;queue=[];queueIndex=-1;queueHistory.clear();desktop.update({track:null,artUrl:'',...queueState()});kotonoha.clearTrack();generation++;tracks=[];lists=[];pendingFavorite=null;view='accounts';
     emit({kind:'media',lyrics:[],pixels:[],title:''});await restore();return sendAccounts();
   }
   if(command==='nextpage'||command==='prevpage') return pageLoad(command==='nextpage'?page+1:Math.max(1,page-1));
@@ -386,15 +421,20 @@ async function run(command) {
     pendingAuto=false;
     const index = Number(command.slice(5));
     if (!Number.isInteger(index) || !tracks[index]) throw new Error('请先搜索并选择歌曲');
+    const revision=cancelGeneration,chosen=tracks[index];
+    const collection=view==='history'?{rows:await playedHistory.list((await accounts.current()).userid),source:'played-history',title:'已播放历史'}:await playbackCollection();
+    if(closing||revision!==cancelGeneration)throw new Error('读取已取消');
     const previousQueue=queue,previousIndex=queueIndex;
-    const selected=sortedQueue(tracks,index,canSort()?sortedPlaylists.all(sortKey(),sortMode,sortSeed):null,page,pageSize);
+    const selected=sortedQueue(tracks,index,collection.rows,page,pageSize);
+    if(collection.rows){
+      const matches=row=>row?.hash===chosen.hash&&String(row?.audioId??'')===String(chosen.audioId??'');
+      if(!matches(selected.queue[selected.index]))selected.index=selected.queue.findIndex(matches);
+      if(selected.index<0)throw new Error('选中歌曲已不在当前集合，请刷新后重试');
+    }
     queue=selected.queue;queueIndex=selected.index;
-    const complete=canSort()&&sortedPlaylists.has(sortKey());
-    const context=view==='playlist'?[playlistId?.listid,playlistId?.publicId]:view==='browse'?[section,browseKind,browseId]:view==='catalog'?[catalogKey,searchType,artistTab]:[keyword];
-    const source=JSON.stringify([view,context,sortMode,sortSeed,complete?null:page]);
-    const title=(pageTitle==='歌曲'&&keyword?'搜索 · '+keyword:pageTitle)+(complete?'':` · 第 ${page} 页`);
+    const source=JSON.stringify([collection.source,canSort()?sortMode:'default',canSort()?sortSeed:1]);
     try{
-      if(await playTrack(queue[index]))queueHistory.commit(queue,queueIndex,source,title);
+      if(await playTrack(queue[queueIndex]))queueHistory.commit(queue,queueIndex,source,collection.title);
       else{queue=previousQueue;queueIndex=previousIndex;}
     }catch(error){queue=previousQueue;queueIndex=previousIndex;throw error;}
     return;
@@ -430,7 +470,7 @@ async function run(command) {
         // Keep the freshly scanned credential; renew only when due or confirmed rejected.
         if(loginRevision!==cancelGeneration)return;
         history.clear();sortedPlaylists.clear();discovery.clear();userPlaylists.clear();section='';
-        player.stop();pendingAuto=false;queue=[];queueIndex=-1;queueHistory.clear();desktop.update({track:null,artUrl:'',...queueState()});kotonoha.clearTrack();generation++;tracks=[];lists=[];pendingFavorite=null;view='accounts';
+        player.stop();pendingHistoryTrack=null;pendingAuto=false;queue=[];queueIndex=-1;queueHistory.clear();desktop.update({track:null,artUrl:'',...queueState()});kotonoha.clearTrack();generation++;tracks=[];lists=[];pendingFavorite=null;view='accounts';
         emit({kind:'media',lyrics:[],pixels:[],title:''});
         await restore();
         emit({ kind: 'clear_qr' });
@@ -446,13 +486,15 @@ async function run(command) {
   throw new Error('未知操作');
 }
 async function playTrack(track,paused=false,start=0) {
-    const revision=++generation;
+    const revision=++generation,cancelRevision=cancelGeneration;
     const url = await resolveTrack(route=>session.request(route), track,preferredQuality);
     emit({kind:'status',message:'正在检查真实音频编码 · '+preferredQuality});
     const quality=await inspectAudio(url);
     if(preferredQuality==='flac')requireLossless(quality);
-    if(revision!==generation||closing)return;
+    const userid=(await accounts.current()).userid;
+    if(revision!==generation||cancelRevision!==cancelGeneration||closing)return;
     emit({kind:'quality',...quality});
+    pendingHistoryTrack={userid,track:{...track}};
     player.play(url,paused,start);desktop.update({track:(({hash,title,artist,duration})=>({hash,title,artist,duration}))(track),artUrl:'',seconds:start,...queueState()});
     const playInstance=kotonoha.beginTrack(track);
     emit({kind:'media',fresh:true,seconds:start,song:track.title,artist:track.artist,duration:track.duration,lyrics:[],pixels:[],title:track.artist+' - '+track.title});
@@ -495,7 +537,7 @@ async function dispatch(line) {
   if(line==='home'){cancelGeneration++;catalogEpoch++;collectionEpoch++;collectionInfo=null;collectionKey='';history.clear();view='search';keyword='';section='';tracks=[];lists=[];return;}
   if(line.startsWith('volume:')) {const value=Number(line.slice(7));if(Number.isFinite(value)){player.setVolume(value);emit({kind:'volume',value:player.volume});desktop.update({volume:player.volume});}return;}
   if (line.trim() === 'pause') { if(player.child)player.pause();else if(queue[queueIndex])return dispatch('resume');return; }
-  if (line.trim() === 'stop') { pendingAuto=false;generation++;player.stop(); emit({ kind: 'status', message: '已停止播放' }); return; }
+  if (line.trim() === 'stop') { pendingHistoryTrack=null;pendingAuto=false;generation++;player.stop(); emit({ kind: 'status', message: '已停止播放' }); return; }
   if(line.startsWith('seekpercent:')){const ratio=Number(line.slice(12));const track=queue[queueIndex];if(!busy&&player.child&&track?.duration>0&&Number.isFinite(ratio))player.seek(Math.max(0,Math.min(1,ratio))*track.duration,true);return;}
   if(line.startsWith('seekrelative:')){if(!busy)player.seek(Number(line.slice(13)),false);return;}
   if(line.startsWith('seekto:')||line.startsWith('seekby:')) {
@@ -514,8 +556,8 @@ async function dispatch(line) {
   emit({ kind: 'busy', value: true });
   try {
     resizing=line==='resize';
-    if(['accounts','playlists','recommend','discover','quality','queue','sectiontoggle','sectionranks'].includes(line)||line.startsWith('search:')||line.startsWith('openlist:')||line.startsWith('openentity:')||line==='artistprofile') {history.push(snapshot(),focus);focus={selected:0,offset:0};}
-    if(['accounts','playlists','recommend','discover','quality','queue','login'].includes(line)||['search:','switch:','deleteaccount:'].some(prefix=>line.startsWith(prefix))){collectionEpoch++;catalogEpoch++;collectionInfo=null;collectionKey='';}
+    if(['accounts','playlists','recommend','discover','quality','queue','history','sectiontoggle','sectionranks'].includes(line)||line.startsWith('search:')||line.startsWith('openlist:')||line.startsWith('openentity:')||line==='artistprofile') {history.push(snapshot(),focus);focus={selected:0,offset:0};}
+    if(['accounts','playlists','recommend','discover','quality','queue','history','login'].includes(line)||['search:','switch:','deleteaccount:'].some(prefix=>line.startsWith(prefix))){collectionEpoch++;catalogEpoch++;collectionInfo=null;collectionKey='';}
     await run(line.trim());
     if(view==='queue'&&['queueplay:','nexttrack','prevtrack','autonext','resume'].some(command=>line.startsWith(command))){
       queueHistory.update(queueIndex);resizing=true;await pageLoad(page);

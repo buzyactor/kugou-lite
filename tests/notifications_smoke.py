@@ -35,6 +35,11 @@ print('321')
     def sent():return [json.loads(s) for s in log.read_text().splitlines()]
     try:
         drain(.5);assert len(sent())==1,'duplicate error delivered twice'
+        args=sent()[0]
+        icon=Path(args[args.index('--icon')+1]).resolve()
+        assert icon==Path('复古终端像素狼头音乐图标.png').resolve(),args
+        assert icon.read_bytes()==Path('复古终端像素狼头音乐图标.png').read_bytes()
+        assert '--hint=string:desktop-entry:kugou-lite' in args,args
         assert '通知失败测试'.encode() in re.sub(rb'\x1b\[[0-?]*[ -/]*[@-~]',b'',bytes(output)),'in-app notification missing'
         # Right-top notification is clickable; verify title/body does not redraw.
         send(b'\x1b[<0;135;5M');send(b'\x1b[<0;135;5m')

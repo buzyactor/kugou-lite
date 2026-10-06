@@ -25,7 +25,7 @@ class Service(dbus.service.Object):
 
     def properties(self, interface):
         if interface == ROOT:
-            return {'Identity': 'Kugou Lite', 'CanQuit': False, 'CanRaise': False,
+            return {'Identity': 'Kugou Lite', 'DesktopEntry': 'kugou-lite', 'CanQuit': False, 'CanRaise': False,
                     'HasTrackList': False, 'SupportedUriSchemes': dbus.Array([], signature='s'),
                     'SupportedMimeTypes': dbus.Array([], signature='s')}
         if interface != PLAYER:
@@ -50,7 +50,7 @@ class Service(dbus.service.Object):
     def Introspect(self, object_path, connection):
         node = ET.fromstring(super().Introspect(object_path, connection))
         definitions = {
-            ROOT: {'Identity': 's', 'CanQuit': 'b', 'CanRaise': 'b', 'HasTrackList': 'b',
+            ROOT: {'Identity': 's', 'DesktopEntry': 's', 'CanQuit': 'b', 'CanRaise': 'b', 'HasTrackList': 'b',
                    'SupportedUriSchemes': 'as', 'SupportedMimeTypes': 'as'},
             PLAYER: {'LoopStatus': 's', 'Shuffle': 'b', 'PlaybackStatus': 's', 'Rate': 'd', 'MinimumRate': 'd', 'MaximumRate': 'd',
                      'Metadata': 'a{sv}', 'Volume': 'd', 'Position': 'x', 'CanGoNext': 'b',
