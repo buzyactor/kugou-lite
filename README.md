@@ -2,6 +2,8 @@
 
 开发接续入口：[HANDOFF.md](docs/HANDOFF.md)，包含开发约定、当前状态、待验证事项和同步步骤。具体变更历史见[STATUS.md](STATUS.md)。
 
+Windows 原生版本开发入口：[WINDOWS_HANDOFF.md](docs/WINDOWS_HANDOFF.md)，包含环境准备、代码适配点、构建验收和可复制给 Windows Codex 的起始指令。当前 Windows 版本尚未编译验收，现有 Arch Linux 配置保持不变。
+
 Rust + Ratatui 酷狗概念版 TUI。Node.js 调用本地参考项目的酷狗接口；mpv 负责音频播放，通过 JSON IPC 控制播放、跳转、读取进度。当前使用独立 mpv 进程，没有嵌入 libmpv。
 
 Kotonoha 桌面歌词接入：在设置 → 歌词中开启“Kotonoha 桌面歌词”，默认向 `ws://127.0.0.1:28745/kotonoha/adapter` 发布完整歌词与实际播放校准。默认关闭，未启动 Kotonoha 不影响播放。配置、身份、时间偏移、真实协议验证与下一段开发事项见 [交接文档](docs/KOTONOHA_INTEGRATION.md)。
@@ -15,7 +17,8 @@ Kotonoha 桌面歌词接入：在设置 → 歌词中开启“Kotonoha 桌面歌
 node tools/clone-references.mjs --runtime-only
 # 安装接口依赖
 npm --prefix kgcheckin/api ci --ignore-scripts --no-audit --no-fund
-npm --prefix KuGouMusicApi ci --ignore-scripts --no-audit --no-fund
+# modern 当前基线只有 pnpm-lock.yaml；首次 npm 安装生成其本地 npm 锁
+npm --prefix KuGouMusicApi install --ignore-scripts --no-audit --no-fund
 # 本工作区已编译
 ./tui/target/debug/kugou-lite
 # 修改 Rust 后重新编译运行
