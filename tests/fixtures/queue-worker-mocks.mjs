@@ -11,15 +11,34 @@ const sources={
     export class SessionReader {async maintain(){} async request(route){return globalThis.queueFavoriteRequest(route);}}`,
   'direct-api.mjs':`export const LOGIN_PROVIDER='mock';
     const favorites=new Map();let fileId=100;
+    const cloudLists=[{listid:'1',name:'created list',list_create_userid:'1',type:0,is_mine:0,sort:2,tags:'华语',intro:'Original intro',pic:'custom/original.jpg'},{listid:'2',name:'Target list',list_create_userid:'1',type:0,is_mine:0,sort:1,tags:'',intro:''}];
+    let cloudVersion=10,songVersion=5;
+    globalThis.queueCloudDirectory=()=>cloudLists.map(r=>({...r,title:r.name,ownerId:r.list_create_userid,count:(favorites.get(r.listid)||[]).length}));
+    if(process.env.QUEUE_CLOUD_PLAYLISTS)favorites.set('1',Array.from({length:Number(process.env.QUEUE_CLOUD_COUNT)||5},(_,i)=>({hash:'d'+String(i).padStart(31,'0'),filename:'Artist - personal'+i,mixsongid:String(1000+i),album_id:'1',fileid:String(++fileId),sort:50-i})));
+
     globalThis.queueFavoriteRequest=async route=>{
       const url=new URL(route,'https://mock'),listid=url.searchParams.get('listid');
       const rows=favorites.get(listid)||[];
+      if(url.pathname==='/user/playlist')return {data:{total_ver:cloudVersion,info:globalThis.queueCloudDirectory()}};
+      if(url.pathname==='/playlist/add'){
+        cloudLists.push({listid:String(cloudLists.length+1),name:url.searchParams.get('name'),list_create_userid:'1',type:0,is_mine:0,sort:0,tags:'',intro:''});cloudVersion++;
+        console.log(JSON.stringify({kind:'fixture_write',action:'create'}));return {status:1};
+      }
+      if(url.pathname==='/playlist/update'){
+        const list=cloudLists.find(r=>r.listid===listid);list.name=url.searchParams.get('name');cloudVersion++;
+        console.log(JSON.stringify({kind:'fixture_write',action:'rename'}));return {status:1};
+      }
+      if(url.pathname==='/playlist/tracks/sort'){
+        for(const pair of url.searchParams.get('data').split(',')){const [id,sort]=pair.split('|');rows.find(r=>r.fileid===id).sort=Number(sort);}
+        rows.sort((a,b)=>b.sort-a.sort);songVersion++;
+        console.log(JSON.stringify({kind:'fixture_write',action:'sort'}));return {status:1};
+      }
       if(url.pathname==='/playlist/track/all/new'){
         const p=Number(url.searchParams.get('page')),size=Number(url.searchParams.get('pagesize'));
-        return {data:{info:rows.slice((p-1)*size,p*size)}};
+        return {data:{count:rows.length,list_ver:songVersion,info:rows.slice((p-1)*size,p*size)}};
       }
       if(url.pathname==='/playlist/tracks/add'){
-        const incoming=url.searchParams.get('data').split(',').map(s=>{const [name,hash,album_id,mixsongid]=s.split('|');return {filename:name,hash,album_id,mixsongid,fileid:String(++fileId)};});
+        const incoming=url.searchParams.get('data').split(',').map((s,i)=>{const [name,hash,album_id,mixsongid]=s.split('|');return {filename:name,hash,album_id,mixsongid,fileid:String(++fileId),sort:rows.length?Number(rows.at(-1).sort??0)-i-1:100-i};});
         favorites.set(listid,rows.concat(incoming));
         console.log(JSON.stringify({kind:'fixture_write',action:'add',count:incoming.length}));
         if(process.env.QUEUE_FAVORITE_FAIL)throw Error('Synthetic unknown write outcome');
@@ -40,7 +59,7 @@ const sources={
     }
     return globalThis.queueFavoriteRequest(route);
   };`,
-  'user-playlists.mjs':`export class UserPlaylists {clear(){} async page(request,id,kind){return [{title:kind+' list',listid:'1',publicId:kind,type:kind==='collected'?1:0,isMine:0,ownerId:String(id),count:5}];}}`,
+  'user-playlists.mjs':`export class UserPlaylists {clear(){} async page(request,id,kind,page=1,size=20){if(process.env.QUEUE_CLOUD_PLAYLISTS)return globalThis.queueCloudDirectory().filter(r=>kind==='created'?r.type===0:r.type===1).slice((page-1)*size,page*size);return [{title:kind+' list',listid:'1',publicId:kind,type:kind==='collected'?1:0,isMine:0,ownerId:String(id),count:5}];}}`,
   'playlist-access.mjs':`export const playlistTracks=async(request,list,page,size)=>Array.from({length:5},(_,i)=>({hash:'d'+String(i).padStart(31,'0'),title:'personal'+i,artist:'Artist',duration:120,audioId:String(i),albumId:'1'})).slice((page-1)*size,page*size);`,
   'desktop.mjs':`export class Desktop {update(){} close(){}} export class Spectrum {start(){} stop(){}}`,
   'discovery.mjs':`export class Discovery {
@@ -66,6 +85,7 @@ const sources={
 registerHooks({load(url,context,nextLoad){
   const parsed=new URL(url),name=parsed.pathname.split('/').at(-1);
   if(parsed.pathname.includes('/src/')&&!parsed.search){
+    if(name==='playlist-access.mjs'&&process.env.QUEUE_CLOUD_PLAYLISTS)return {format:'module',shortCircuit:true,source:`export * from ${JSON.stringify(url+'?original')};`};
     if(name==='user-playlists.mjs')return {format:'module',shortCircuit:true,source:`export {playlistGroup} from ${JSON.stringify(url+'?original')};`+sources[name]};
     if(sources[name])return {format:'module',source:sources[name],shortCircuit:true};
     if(name==='play-history.mjs')return {format:'module',shortCircuit:true,source:

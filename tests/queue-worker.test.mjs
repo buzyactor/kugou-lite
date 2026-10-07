@@ -305,3 +305,35 @@ test('disabled error skip leaves a failed player on the chosen song for manual a
  const current=await queue();assert.equal(current.tracks[0].remembered,true);
  assert.ok(!current.tracks.some(t=>t.active));
 },{QUEUE_RUNTIME_FAIL:'1'}));
+
+test('worker creates and renames own playlists, copies/moves across lists and reorders by cloud position',async()=>withWorker(async({send})=>{
+ await send('playlists');await send('songmenu:0');let prompt=(await send('songaction:playlist-rename')).find(e=>e.kind==='text_prompt');
+ let events=await send(prompt.command+JSON.stringify('Renamed'));
+ assert.ok(events.some(e=>e.kind==='fixture_write'&&e.action==='rename'));assert.equal(events.find(e=>e.kind==='playlists').lists[0].title,'Renamed');
+ prompt=(await send('playlistnew')).find(e=>e.kind==='text_prompt');events=await send(prompt.command+JSON.stringify('New list'));
+ assert.equal(events.find(e=>e.kind==='playlists').lists.length,3);
+ await send('openlist:0');await send('songmenu:0');prompt=(await send('songaction:position')).find(e=>e.kind==='text_prompt');
+ events=await send(prompt.command+JSON.stringify('4'));
+ assert.deepEqual(events.find(e=>e.kind==='tracks').tracks.map(r=>r.title),['personal1','personal2','personal3','personal0','personal4']);
+ assert.equal(events.filter(e=>e.kind==='fixture_write'&&e.action==='sort').length,1);
+ await send('songmenu:0');await send('songaction:copy');await send('openlist:1');events=await send('cloudtransfer');
+ assert.ok(events.some(e=>e.kind==='fixture_write'&&e.action==='add'));assert.ok(!events.some(e=>e.kind==='fixture_write'&&e.action==='remove'));
+ assert.equal(events.find(e=>e.kind==='tracks').tracks.length,5);
+ await send('mark:0');await send('mark:1');await send('songmenu:0');await send('songaction:move-batch');await send('openlist:1');events=await send('cloudtransfer');
+ assert.deepEqual(events.filter(e=>e.kind==='fixture_write').map(e=>[e.action,e.count]),[['add',1],['remove',2]]);
+ assert.deepEqual(events.find(e=>e.kind==='tracks').tracks.map(r=>r.title),['personal3','personal0','personal4']);
+ assert.ok(events.some(e=>e.kind==='marks'&&e.count===0));
+ assert.ok((await send('cloudtransfer')).some(e=>e.kind==='error'));
+},{QUEUE_CLOUD_PLAYLISTS:'1'}));
+
+test('cloud prompt/confirmation cancellation and account switch never execute stale writes',async()=>withWorker(async({send,child})=>{
+ await send('playlists');const escaped=(await send('playlistnew')).find(e=>e.kind==='text_prompt');
+ child.stdin.write('dialogcancel\n');assert.ok(!(await send(escaped.command+JSON.stringify('Cancelled'))).some(e=>e.kind==='fixture_write'));
+ const prompt=(await send('playlistnew')).find(e=>e.kind==='text_prompt');
+ await send('switch:1');const cancelled=await send(prompt.command+JSON.stringify('Stale'));
+ assert.ok(cancelled.some(e=>e.kind==='error'));assert.ok(!cancelled.some(e=>e.kind==='fixture_write'));
+ await send('switch:0');await send('playlists');await send('openlist:0');await send('songmenu:0');await send('songaction:move');await send('openlist:1');
+ assert.ok(!(await send('refresh')).some(e=>e.kind==='error'));
+ assert.ok(!(await send('cloudtransfer')).some(e=>e.kind==='fixture_write'));
+ await send('back');
+},{QUEUE_CLOUD_PLAYLISTS:'1'}));

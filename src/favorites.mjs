@@ -12,7 +12,7 @@ export class Favorites {
   // That flag is not an ownership predicate for this directory endpoint.
   if(playlistGroup(list,userid)!=='created'||!/^\d+$/.test(String(list.listid)))throw new Error('只能编辑自己创建的歌单');
   const wanted=uniqueTracks(tracks);if(!wanted.length||wanted.length>100)throw new Error('每次请选择 1–100 首歌曲');
-  const members=new Map(),seen=new Set(),started=Date.now();
+  const members=new Map(),seen=new Set(),started=Date.now();let totalCount=0;
   for(let p=1;;p++){
    if(p>667||Date.now()-started>120000)throw new Error('收藏状态读取超限，请重试');
    const body=await request(`/playlist/track/all/new?listid=${list.listid}&page=${p}&pagesize=30`);
@@ -20,6 +20,7 @@ export class Favorites {
    if(!Array.isArray(raw)||raw.length>30)throw new Error('收藏状态分页格式异常');
    const signature=JSON.stringify(raw.map(row=>[row.fileid,row.hash,row.audio_info?.hash,row.mixsongid]));
    if(raw.length&&seen.has(signature))throw new Error('收藏状态接口重复分页');seen.add(signature);
+   totalCount+=raw.length;
    for(const row of raw){
     const track=songRows([row])[0];if(!track)throw new Error('歌单含无法识别的歌曲，收藏状态未确认');
     for(const key of trackKeys(track)){const files=members.get(key)??[];files.push(String(row.fileid??''));members.set(key,files);}
@@ -27,7 +28,7 @@ export class Favorites {
    if(raw.length<30)break;
   }
   const existing=wanted.filter(row=>memberFiles({members},row).length),missing=wanted.filter(row=>!memberFiles({members},row).length);
-  return {userid:String(userid),list:{...list},tracks:wanted,existing,missing,members};
+  return {userid:String(userid),list:{...list},tracks:wanted,existing,missing,members,totalCount};
  }
  async apply(request,state,action){
   if(!['add','remove'].includes(action))throw new Error('未知收藏操作');
@@ -48,7 +49,7 @@ export class Favorites {
   try{
    const checked=await this.inspect(request,state.userid,state.list,state.tracks);
    const verified=action==='add'?checked.missing.length===0:checked.existing.length===0;
-   return {verified,action,count:action==='add'?state.missing.length:state.existing.length};
+   return {verified,action,count:action==='add'?state.missing.length:state.existing.length,totalCount:checked.totalCount};
   }catch{return {verified:false,action,count:action==='add'?state.missing.length:state.existing.length};}
  }
 }

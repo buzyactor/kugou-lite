@@ -22,7 +22,7 @@ with tempfile.TemporaryDirectory(prefix='kugou-queue-ui-') as folder:
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 40, 160, 0, 0))
     env = dict(os.environ, TERM='xterm-kitty', KITTY_WINDOW_ID='queue-test',
-               PATH=str(root) + ':' + os.environ['PATH'], XDG_CONFIG_HOME=str(root / 'config'), QUEUE_UI_COUNT='45', QUEUE_HISTORY_FILE=str(root / 'play-history.json'))
+               PATH=str(root) + ':' + os.environ['PATH'], XDG_CONFIG_HOME=str(root / 'config'), QUEUE_UI_COUNT='45', QUEUE_CLOUD_PLAYLISTS='1', QUEUE_CLOUD_COUNT='40', QUEUE_HISTORY_FILE=str(root / 'play-history.json'))
     process = subprocess.Popen(['./tui/target/debug/kugou-lite'], stdin=slave,
                                stdout=slave, stderr=slave, env=env, start_new_session=True)
     os.close(slave)
@@ -49,11 +49,11 @@ with tempfile.TemporaryDirectory(prefix='kugou-queue-ui-') as folder:
     def contains(text):
         return text in '\n'.join(str(screen.line(i)) for i in range(40))
 
-    def click_text(text):
+    def click_text(text, menu=False):
         lines=[str(screen.line(i)) for i in range(40)]
         y=next(i for i,line in enumerate(lines) if text in line)
         prefix=lines[y].split(text)[0]
-        x=sum(2 if ord(c)>0x2e80 else 1 for c in prefix)
+        x=79 if menu else sum(2 if ord(c)>0x2e80 else 1 for c in prefix)
         send(f'\x1b[<0;{x+1};{y+1}M'.encode())
 
     try:
@@ -90,12 +90,37 @@ with tempfile.TemporaryDirectory(prefix='kugou-queue-ui-') as folder:
         assert contains('已收藏 0/2 首'), 'cross-page batch selection lost'
         send(b'\r')
         assert contains('添加 2 首') and contains('第 2 页'), 'batch add or original page restoration failed'
+        send(b'p');send(b'c')
+        assert contains('新建歌单（1–80字）'), 'C creation prompt missing'
+        send(b'New cloud');send(b'\r')
+        assert contains('已核对：创建歌单 New cloud'), 'creation not verified'
+        send(b'k');click_text('重命名歌单', menu=True)
+        send(b'\x1b[3~');send(b'My cloud');send(b'\r')
+        assert contains('My cloud') and contains('已核对：歌单改名'), 'rename not verified'
+        send(b'\r');send(b'k');click_text('输入编号调整歌单位置', menu=True)
+        assert contains('移动到歌单编号'), 'position prompt missing: '+ '\n'.join(str(screen.line(i)) for i in range(40))
+        send(b'4');send(b'\r')
+        assert contains('已核对：移动 1 首到第 4 位'), 'numbered position did not apply: '+ '\n'.join(str(screen.line(i)) for i in range(40))
+        send(b'k');click_text('复制到另一个歌单', menu=True)
+        send(b'\x1b[B');send(b'\r')
+        assert contains('确认复制'), 'copy confirmation missing'
+        send(b'\r')
+        assert contains('已核对：复制 1 首'), 'copy not verified'
+        send(b'm');send(b'\x1b[C');send(b'm');send(b'k')
+        click_text('移动已标记 2 首到歌单', menu=True)
+        send(b'\x1b[B');send(b'\r')
+        assert contains('确认移动（核对目标后从原歌单移除）'), 'move confirmation missing'
+        send(b'\r')
+        assert contains('已核对：移动 2 首'), 'batch move did not verify and return'
+        send(b'g');assert contains('My cloud'), 'own playlist refresh failed'
+        send(b'p');send(b'k');click_text('新建歌单', menu=True);send(b'\x1b')
+        assert not contains('新建歌单（1–80字）'), 'creation Esc cancellation failed'
         send(b'b');send(b'k')
         send(b'q');process.wait(timeout=3)
         saved=json.loads((root/'play-history.json.queues').read_text())['accounts']['1']
         assert any(e['title']=='Evening' and e.get('pinned') for e in saved['entries']), 'name/pin did not persist'
         assert process.returncode == 0
-        print('Queue editing and favorites UI: mouse/keyboard menu, append, move, removal, rename/pin persistence, current-song F, cloud membership, cancel, confirmed removal and cross-page batch passed')
+        print('Queue editing and favorites UI: mouse/keyboard menu, append, move, removal, rename/pin persistence, current-song F, cloud membership, cancel, confirmed removal and cross-page batch, cloud create/rename/copy/move/numbered position passed')
     finally:
         if process.poll() is None:
             process.terminate()

@@ -26,6 +26,9 @@ const routes = {
   '/playlist/track/all/new': 'playlist_track_all_new',
   '/playlist/tracks/add': 'playlist_tracks_add',
   '/playlist/tracks/del': 'playlist_tracks_del',
+  '/playlist/add': 'playlist_add',
+  '/playlist/update': 'playlist_update',
+  '/playlist/tracks/sort': 'playlist_tracks_sort',
   '/search/lyric': 'search_lyric',
   '/lyric': 'lyric',
   '/song/url': 'song_url',
@@ -54,6 +57,7 @@ export async function unwrapRequest(call) {
 // Authentication has one provider for this experiment, independent of music API selection.
 export const LOGIN_PROVIDER = 'KuGouMusicApi@1.6.2';
 const AUTH_ROUTES = new Set(['/login/token','/login/qr/key','/login/qr/create','/login/qr/check','/register/dev']);
+const MANAGEMENT_ROUTES=new Set(['/playlist/add','/playlist/update','/playlist/tracks/sort']);
 const clients = new Map();
 function apiClient(api) {
   if(clients.has(api))return clients.get(api);
@@ -78,9 +82,10 @@ export function directRequest(cookie = '', {api = 'legacy', transport} = {}) {
     const url = new URL(route, 'http://local.invalid');
     const moduleName = routes[url.pathname];
     if(url.origin !== 'http://local.invalid' || !moduleName)throw new Error('不支持的接口');
-    const client=apiClient(AUTH_ROUTES.has(url.pathname)?'modern':api);
+    const client=apiClient(AUTH_ROUTES.has(url.pathname)||MANAGEMENT_ROUTES.has(url.pathname)?'modern':api);
     const module=client.require(client.root+'module/'+moduleName+'.js');
     const params=Object.fromEntries(url.searchParams);
+    if(url.pathname==='/playlist/add'){params.type=Number(params.type??0);params.source=Number(params.source??0);params.is_pri=Number(params.is_pri??0);}
     let timer;
     try {
       return await Promise.race([

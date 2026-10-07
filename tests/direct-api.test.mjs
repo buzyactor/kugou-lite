@@ -42,3 +42,25 @@ test('QR and renewal use native modern modules even when music API is legacy, wi
   await assert.rejects(directRequest('',{transport:async()=>{attempts++;throw {body:{code:'ECONNRESET'}};}})('/login/token'));
   assert.equal(attempts,1,'rotating requests are never retried through another provider');
 });
+
+test('playlist creation uses modern module with numeric creation flags and never retries writes',async()=>{
+ const calls=[],request=directRequest('userid=1; token=fixture',{transport:async options=>{calls.push(options);return {body:{status:1}};}});
+ await request('/playlist/add?name=Test&type=0&source=0&is_pri=1&list_create_userid=1&list_create_listid=0');
+ assert.equal(calls.length,1);assert.equal(calls[0].data.type,0);assert.equal(calls[0].data.source,0);assert.equal(calls[0].data.is_pri,1);
+ assert.equal(calls[0].url,'/cloudlist.service/v5/add_list');
+});
+
+test('native encrypted cloud modules receive versions and positions without falling back to legacy',async()=>{
+ const require=createRequire(import.meta.url),util=require('../KuGouMusicApi/util/index.js'),original=util.createCloudRequest,calls=[];
+ const paths=['../KuGouMusicApi/module/playlist_tracks_sort.js','../KuGouMusicApi/module/playlist_update.js'];
+ try{
+  util.createCloudRequest=async options=>{calls.push(options);return {body:{status:1}};};
+  const request=directRequest('userid=1; token=fixture');
+  await request('/playlist/tracks/sort?listid=1&list_ver=7&data=12|60,15|59');
+  await request('/playlist/update?listid=1&total_ver=9&name=New&sort=2&tags=Pop&intro=Keep&pic=custom/original.jpg');
+  assert.equal(calls[0].url,'/v1/modify_song_sort');assert.equal(calls[0].data.list_ver,7);
+  assert.deepEqual(calls[0].data.data,[{fileid:12,sort:60},{fileid:15,sort:59}]);
+  assert.equal(calls[1].url,'/v1/modify_list');assert.equal(calls[1].data.total_ver,9);assert.equal(calls[1].data.intro,'Keep');
+  assert.ok(paths.every(path=>require.cache[require.resolve(path)]));
+ }finally{util.createCloudRequest=original;for(const path of paths)delete require.cache[require.resolve(path)];}
+});

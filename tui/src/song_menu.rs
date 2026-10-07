@@ -161,8 +161,11 @@ impl Dialog {
         }
         if inner.height > 0 {
             f.render_widget(
-                Paragraph::new(" ↑↓ / 鼠标选择 · Enter 确认 · Esc 取消")
-                    .style(Style::default().fg(palette.muted)),
+                Paragraph::new(match self {
+                    Self::Text { .. } => " 输入内容 · Backspace 删除 · Enter 保存 · Esc 取消",
+                    Self::Menu { .. } => " ↑↓ / 鼠标选择 · Enter 确认 · Esc 取消",
+                })
+                .style(Style::default().fg(palette.muted)),
                 Rect::new(inner.x, inner.bottom() - 1, inner.width, 1),
             );
         }

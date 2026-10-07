@@ -215,6 +215,7 @@ fn run(
     let mut quality_picker: Option<quality_menu::Picker> = None;
     let mut song_dialog: Option<song_menu::Dialog> = None;
     let mut favorite_media_origin = false;
+    let mut manage_playlists = false;
     let mut marked_count = 0usize;
     let mut settings_category = 0_usize;
     let mut live_bitrate: Option<f64> = None;
@@ -523,8 +524,11 @@ fn run(
                     });
                     *selection.offset_mut() = (value["offset"].as_u64().unwrap_or(0) as usize)
                         .min(tracks.len().saturating_sub(1));
+                    manage_playlists = value["managePlaylists"] == true;
                     message = if value["selectFavorite"] == true {
-                        "选择目标歌单并按 Enter 查看收藏状态"
+                        "Enter 选择目标歌单 · C 新建歌单"
+                    } else if manage_playlists {
+                        "Enter 打开歌单 · C 新建 · K / 右键管理"
                     } else {
                         "选择个人歌单并按 Enter 打开"
                     }
@@ -1097,6 +1101,7 @@ fn run(
                     if song_dialog.is_some() && !controls::contains(regions.song_menu, x, y) {
                         if matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left)) {
                             song_dialog = None;
+                            writeln!(worker.0.stdin.as_mut().unwrap(), "dialogcancel")?;
                         }
                         continue;
                     }
@@ -1237,6 +1242,7 @@ fn run(
                             };
                             if let Some(raw) = raw {
                                 if media_shown
+                                    || view == "playlists" && manage_playlists
                                     || matches!(view.as_str(), "tracks" | "history" | "queue")
                                     || view == "catalog"
                                         && tracks
@@ -1262,7 +1268,14 @@ fn run(
                                         if let song_menu::Action::Send(command) =
                                             dialog.click(index)
                                         {
-                                            if command.starts_with("songaction:favorite") {
+                                            if [
+                                                "songaction:favorite",
+                                                "songaction:copy",
+                                                "songaction:move",
+                                            ]
+                                            .iter()
+                                            .any(|prefix| command.starts_with(prefix))
+                                            {
                                                 favorite_media_origin = media_shown;
                                             }
                                             writeln!(
@@ -1422,9 +1435,15 @@ fn run(
                 if let Some(dialog) = song_dialog.as_mut() {
                     if !busy {
                         match dialog.key(key.code) {
-                            song_menu::Action::Close => song_dialog = None,
+                            song_menu::Action::Close => {
+                                song_dialog = None;
+                                writeln!(worker.0.stdin.as_mut().unwrap(), "dialogcancel")?;
+                            }
                             song_menu::Action::Send(command) => {
-                                if command.starts_with("songaction:favorite") {
+                                if ["songaction:favorite", "songaction:copy", "songaction:move"]
+                                    .iter()
+                                    .any(|prefix| command.starts_with(prefix))
+                                {
                                     favorite_media_origin = media_shown;
                                 }
                                 writeln!(worker.0.stdin.as_mut().unwrap(), "{command}")?;
@@ -1925,6 +1944,27 @@ fn run(
                         _ => {}
                     }
                 }
+                if !home
+                    && !settings_shown
+                    && !editing
+                    && !media_shown
+                    && !busy
+                    && view == "playlists"
+                    && manage_playlists
+                {
+                    let command = match key.code {
+                        KeyCode::Char('c' | 'C') => Some("playlistnew".to_string()),
+                        KeyCode::Char('k' | 'K') if !tracks.is_empty() => {
+                            Some(format!("songmenu:{}", selection.selected().unwrap_or(0)))
+                        }
+                        _ => None,
+                    };
+                    if let Some(command) = command {
+                        writeln!(worker.0.stdin.as_mut().unwrap(), "{command}")?;
+                        busy = true;
+                        continue;
+                    }
+                }
                 let song_available = !home
                     && !settings_shown
                     && !editing
@@ -2004,7 +2044,8 @@ fn run(
                     KeyCode::Char('g' | 'G')
                         if !section.is_empty()
                             || view == "catalog"
-                            || view == "playlists" && section_root =>
+                            || can_sort
+                            || view == "playlists" && (section_root || manage_playlists) =>
                     {
                         "refresh"
                     }
