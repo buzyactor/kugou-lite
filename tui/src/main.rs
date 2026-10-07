@@ -255,6 +255,11 @@ fn run(
     )?;
     writeln!(
         worker.0.stdin.as_mut().unwrap(),
+        "errorskip:{}",
+        u8::from(settings.auto_skip_errors)
+    )?;
+    writeln!(
+        worker.0.stdin.as_mut().unwrap(),
         "queuepolicy:{}",
         u8::from(settings.clear_queues_on_exit)
     )?;
@@ -2238,6 +2243,10 @@ fn home_hits(area: ratatui::layout::Rect, regions: &mut controls::Regions) {
 }
 fn change_setting(s: &mut settings::Settings, index: usize, forward: bool) -> Option<String> {
     match index {
+        32 => {
+            s.auto_skip_errors = !s.auto_skip_errors;
+            return Some(format!("errorskip:{}", u8::from(s.auto_skip_errors)));
+        }
         31 => {
             s.clear_queues_on_exit = !s.clear_queues_on_exit;
             return Some(format!("queuepolicy:{}", u8::from(s.clear_queues_on_exit)));

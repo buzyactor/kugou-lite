@@ -8,7 +8,9 @@ export function uniqueTracks(rows){
 export function memberFiles(state,row){return [...new Set(trackKeys(row).flatMap(key=>state.members.get(key)??[]))];}
 export class Favorites {
  async inspect(request,userid,list,tracks){
-  if([0,'0',false].includes(list.isMine)||playlistGroup(list,userid)!=='created'||!/^\d+$/.test(String(list.listid)))throw new Error('只能编辑自己创建的歌单');
+  // Live owned lists have type=0 and the current ownerId, yet is_mine=0.
+  // That flag is not an ownership predicate for this directory endpoint.
+  if(playlistGroup(list,userid)!=='created'||!/^\d+$/.test(String(list.listid)))throw new Error('只能编辑自己创建的歌单');
   const wanted=uniqueTracks(tracks);if(!wanted.length||wanted.length>100)throw new Error('每次请选择 1–100 首歌曲');
   const members=new Map(),seen=new Set(),started=Date.now();
   for(let p=1;;p++){

@@ -67,7 +67,7 @@ export function decodeAudio(url, timeoutMs = 180000) {
   });
 }
 export class Player {
-  constructor(onEvent, { silent = false, onTime = () => {}, onDuration = () => {}, onState = () => {}, onSeek = () => {}, onSeekable = () => {}, onEnded = () => {}, onBitRate = () => {}, volume = 70 } = {}) { this.onDuration=onDuration;this.onBitRate=onBitRate;this.onEnded=onEnded;this.onSeek=onSeek;this.onSeekable=onSeekable;this.onState=onState; this.volume = volume; this.onTime = onTime; this.onEvent = onEvent; this.child = null; this.silent = silent; }
+  constructor(onEvent, { silent = false, onTime = () => {}, onDuration = () => {}, onState = () => {}, onSeek = () => {}, onSeekable = () => {}, onEnded = () => {}, onFailure = () => {}, onBitRate = () => {}, volume = 70 } = {}) { this.onFailure=onFailure;this.onDuration=onDuration;this.onBitRate=onBitRate;this.onEnded=onEnded;this.onSeek=onSeek;this.onSeekable=onSeekable;this.onState=onState; this.volume = volume; this.onTime = onTime; this.onEvent = onEvent; this.child = null; this.silent = silent; }
   seek(seconds, absolute = true) {
     if(!Number.isFinite(seconds)||!this.child)return;
     this.seekPending=true;
@@ -82,7 +82,8 @@ export class Player {
     const child = spawn('mpv', ['--no-config', '--start='+Math.max(0,start), '--pause='+(paused?'yes':'no'), '--audio-client-name=Kugou Lite', '--volume-max=100', '--volume='+this.volume, '--terminal=yes', '--no-input-terminal', '--msg-level=all=no,ipc=error', '--vid=no', '--input-ipc-client=fd://3', '--playlist=-', ...(this.silent ? ['--ao=null'] : [])], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] });
     this.child = child;
     this.seekPending=start>0;
-    let pending = '', ipcDenied = false, ended = false;
+    let pending = '', ipcDenied = false, ended = false, failed = false, notified=false;
+    const failure=fatal=>{if(notified)return;notified=true;this.onFailure({playbackFatal:fatal});};
     const detectFailure = chunk => {
       if (chunk.toString().includes('Operation not permitted')) {
         ipcDenied = true;
@@ -116,11 +117,11 @@ export class Player {
         if (value.event === 'property-change' && value.name === 'time-pos' && typeof value.data === 'number') this.onTime(value.data);
         if (value.event === 'property-change' && value.name === 'pause') {this.onEvent(value.data ? '已暂停' : '播放中');this.onState(value.data ? 'Paused' : 'Playing');child.stdio[3].write('{"command":["get_property","time-pos"],"request_id":7302}\n');}
         if(value.event==='end-file'&&value.reason==='eof')ended=true;
-        if (value.event === 'end-file' && value.reason === 'error') this.onEvent('播放失败，请检查音频权限和网络');
+        if (value.event === 'end-file' && value.reason === 'error') {failed=true;this.onEvent('播放失败，请检查音频权限和网络');}
       }
     });
-    child.on('error', () => this.onEvent('无法启动 mpv，请先安装'));
-    child.on('exit', code => { if (this.child === child) { this.child = null; this.onBitRate(null);this.onState('Stopped'); if (!ipcDenied) this.onEvent(code ? '播放器异常退出' : '播放结束');if(ended&&code===0)this.onEnded(); } });
+    child.on('error', () => {if(this.child!==child)return;this.child=null;this.onBitRate(null);this.onState('Stopped');this.onEvent('无法启动 mpv，请先安装');failure(true);});
+    child.on('exit', (code,signal) => { if (this.child === child) { this.child = null; this.onBitRate(null);this.onState('Stopped'); if (!ipcDenied) this.onEvent(code ? '播放器异常退出' : '播放结束');if(ended&&code===0)this.onEnded();else if(failed||code||signal||ipcDenied)failure(ipcDenied); } });
   }
 }
 
@@ -132,7 +133,7 @@ export function inspectAudio(url, timeoutMs = 20000) {
     const finish=(error,value)=>{if(settled)return;settled=true;clearTimeout(timer);error?reject(error):resolve(value);};
     const timer=setTimeout(()=>{child.kill('SIGKILL');finish(new Error('音频格式检查超时'));},timeoutMs);
     child.stdout.on('data',chunk=>{output+=chunk;if(output.length>65536)child.kill('SIGKILL');});
-    child.on('error',()=>finish(new Error('需要 ffprobe 检查真实音质')));
+    child.on('error',()=>finish(Object.assign(new Error('需要 ffprobe 检查真实音质'),{playbackFatal:true})));
     child.on('close',code=>{
       if(code!==0)return finish(new Error('无法读取音频格式'));
       try {const info=JSON.parse(output).streams?.[0];if(!info?.codec_name)throw Error();finish(null,{codec:info.codec_name,sampleRate:Number(info.sample_rate)||null,bits:Number(info.bits_per_raw_sample)||null,bitRate:Number(info.bit_rate)||null});}

@@ -1,6 +1,7 @@
 import {SortedPlaylists,sortChoices,sortedQueue} from '../src/playlist-sort.mjs';
 import {albumTracks,albumBatchSize} from '../src/album-tracks.mjs';
 import {Favorites,trackKey,uniqueTracks,memberFiles} from '../src/favorites.mjs';
+import {PlaybackRecovery} from '../src/playback-recovery.mjs';
 import {QueueHistory} from '../src/queue-history.mjs';
 import {QueueStore,emptyQueues} from '../src/queue-store.mjs';
 import {PlayHistory} from '../src/play-history.mjs';
@@ -89,7 +90,8 @@ async function songMenu(raw){
 
 let queue=[],queueIndex=-1,playbackStatus='Stopped',position=0,preferredQuality='flac',playMode='sequence',pendingAuto=false;
 const queueHistory=new QueueHistory();
-let queueOwner=null,savedQueueRevision=0,clearQueuesOnExit=false,exitTask=null;
+let queueOwner=null,savedQueueRevision=0,clearQueuesOnExit=false,autoSkipErrors=true,exitTask=null;
+const recovery=new PlaybackRecovery();let recoveryStart=0,recoveryPlaybackGeneration=0,pendingFailure=null;
 const queueState=()=>({next:nextIndex(queueIndex,queue.length,playMode)!==null,previous:nextIndex(queueIndex,queue.length,playMode,-1)!==null});
 const sendPreferences=()=>{emit({kind:'preferences',quality:preferredQuality,mode:playMode});desktop.update({...queueState(),loop:playMode==='single'?'Track':playMode==='loop'?'Playlist':'None',shuffle:playMode==='shuffle'});};
 let view = 'search', keyword = '', page = 1, playlistId = null, generation = 0;
@@ -343,7 +345,8 @@ const player = new Player(message => emit({ kind: 'status', message }), {
   onDuration:seconds=>kotonoha.observeDuration(seconds),
   onSeekable:seekable=>desktop.update({seekable}),
   onEnded:()=>void dispatch('autonext'),
-  onTime:seconds=>{position=seconds;kotonoha.observeTime(seconds);emit({kind:'time',seconds});desktop.update({seconds});},
+  onFailure:error=>{if(!error.playbackFatal&&autoSkipErrors&&recoveryPlaybackGeneration===generation){pendingFailure={generation,queue,index:queueIndex};if(!busy)void dispatch('playbackfailure');}},
+  onTime:seconds=>{if(recoveryPlaybackGeneration===generation&&seconds-recoveryStart>=5)recovery.reset();position=seconds;kotonoha.observeTime(seconds);emit({kind:'time',seconds});desktop.update({seconds});},
   onState:status=>{playbackStatus=status;kotonoha.observeState(status);emit({kind:'state',status});desktop.update({status,loaded:status!=='Stopped',...(status==='Stopped'?{seconds:0}:{})});if(status==='Playing'){
     spectrum.start();
     const started=pendingHistoryTrack;pendingHistoryTrack=null;
@@ -419,7 +422,11 @@ async function run(command) {
     const stay=command.startsWith('qualityapply:');
     const chosen=command.slice(stay?13:8);if(!qualities.includes(chosen))return;
     preferredQuality=chosen;sendPreferences();
-    if(player.child&&queue[queueIndex])await playTrack(queue[queueIndex],playbackStatus==='Paused',position);
+    if(player.child&&queue[queueIndex]){
+      const previousIndex=queueIndex;
+      try{await playFromQueue(queueIndex,playbackStatus==='Paused',position);}
+      catch(error){queueIndex=previousIndex;throw error;}
+    }
     if(!stay)return run('quality');
     return;
   }
@@ -429,7 +436,7 @@ async function run(command) {
     if(Number.isInteger(index)&&entry?.tracks[index]){
       const previousQueue=queue,previousIndex=queueIndex;
       plannedNext=null;pendingAuto=false;queue=entry.tracks;queueIndex=index;
-      try{if(await playTrack(queue[index]))queueHistory.activate(entry.id,index);else{queue=previousQueue;queueIndex=previousIndex;}}
+      try{if(await playFromQueue(index))queueHistory.activate(entry.id,queueIndex);else{queue=previousQueue;queueIndex=previousIndex;}}
       catch(error){queue=previousQueue;queueIndex=previousIndex;throw error;}
     }return;
   }
@@ -522,7 +529,17 @@ async function run(command) {
     await pageLoad(1);void enrichCollection();return;
   }
   if (command.startsWith('search:')) { keyword=command.slice(7);searchType='song';catalogMode='search';artistProfile=null;catalogKey='search:'+keyword;section='';pageTitle='搜索 · '+keyword;view='catalog';catalogEpoch++;return catalogPage(1); }
-  if(command==='resume' && queue[queueIndex]) return playTrack(queue[queueIndex]);
+  if(command==='playbackfailure'){
+    const failure=pendingFailure;pendingFailure=null;
+    if(!autoSkipErrors||!queue[queueIndex]||!failure||failure.generation!==generation||failure.queue!==queue||failure.index!==queueIndex)return;
+    pendingHistoryTrack=null;
+    const next=recovery.next(queue,queueIndex,playMode);
+    if(next===null){stopRemovedTrack();emit({kind:'error',message:'没有可继续尝试的歌曲或连续播放失败已达上限，已停止自动跳过'});return;}
+    emit({kind:'status',message:'播放失败，正在自动尝试下一首'});
+    try{await playFromQueue(next,false,0,false);queueHistory.update(queueIndex);}
+    catch(error){stopRemovedTrack();throw error;}return;
+  }
+  if(command==='resume' && queue[queueIndex]) return playFromQueue(queueIndex);
   if(command==='nexttrack'||command==='prevtrack'||command==='autonext') {
     const oldIndex=queueIndex;
     const planned=command!=='prevtrack'&&queueHistory.playingId===plannedNext?.id?queue.indexOf(plannedNext.track):-1;
@@ -536,7 +553,7 @@ async function run(command) {
       emit({kind:'media',fresh:true,title:queue[index].artist+' - '+queue[index].title,lyrics:[],pixels:[]});
       return;
     }
-    try {const result=await playTrack(queue[index],previousStatus==='Paused');if(result&&planned>=0)plannedNext=null;return result;}catch(error){queueIndex=oldIndex;throw error;}
+    try {const result=await playFromQueue(index,previousStatus==='Paused',0,command!=='autonext');if(result&&planned>=0)plannedNext=null;return result;}catch(error){queueIndex=oldIndex;throw error;}
   }
   if (command.startsWith('play:')) {
     plannedNext=null;pendingAuto=false;
@@ -555,7 +572,7 @@ async function run(command) {
     queue=selected.queue;queueIndex=selected.index;
     const source=JSON.stringify([collection.source,canSort()?sortMode:'default',canSort()?sortSeed:1]);
     try{
-      if(await playTrack(queue[queueIndex]))queueHistory.commit(queue,queueIndex,source,collection.title);
+      if(await playFromQueue(queueIndex))queueHistory.commit(queue,queueIndex,source,collection.title);
       else{queue=previousQueue;queueIndex=previousIndex;}
     }catch(error){queue=previousQueue;queueIndex=previousIndex;throw error;}
     return;
@@ -607,6 +624,25 @@ async function run(command) {
   if (command === 'status' || command === 'claim') return inspect(command === 'claim');
   throw new Error('未知操作');
 }
+async function playFromQueue(index,paused=false,start=0,reset=true){
+ const original=queue,revision=cancelGeneration;
+ if(reset)recovery.reset();
+ let candidate=index;
+ for(;;){
+  if(closing||revision!==cancelGeneration||queue!==original)throw new Error('播放请求已取消');
+  queueIndex=candidate;recoveryStart=start;
+  const attemptGeneration=generation+1;
+  try{return await playTrack(queue[candidate],paused,start);}
+  catch(error){
+   if(generation!==attemptGeneration)throw new Error('播放请求已取消');
+   if(!autoSkipErrors||expired(error)||error.playbackFatal||closing||revision!==cancelGeneration||queue!==original||/取消/.test(error.message))throw error;
+   const next=recovery.next(queue,candidate,playMode);
+   if(next===null)throw new Error(error.message+'（自动跳过已停止：到达队尾、无可用歌曲或连续失败上限）');
+   emit({kind:'status',message:`${queue[candidate].title} 播放失败，自动下一首：${queue[next].title}`});
+   candidate=next;start=0;
+  }
+ }
+}
 async function playTrack(track,paused=false,start=0) {
     const revision=++generation,cancelRevision=cancelGeneration;
     const {url,info:quality,resolved,requested}=await resolvePlayback(route=>session.request(route),track,preferredQuality,{
@@ -619,6 +655,7 @@ async function playTrack(track,paused=false,start=0) {
     if(revision!==generation||cancelRevision!==cancelGeneration||closing)return;
     emit({kind:'quality',...quality});
     pendingHistoryTrack={userid,track:{...track}};
+    pendingFailure=null;recoveryPlaybackGeneration=revision;
     player.play(url,paused,start);desktop.update({track:(({hash,title,artist,duration})=>({hash,title,artist,duration}))(track),artUrl:cached.artUrl,seconds:start,...queueState()});
     const playInstance=kotonoha.beginTrack(track);
     emit({kind:'media',fresh:true,seconds:start,song:track.title,artist:track.artist,duration:track.duration,lyrics:[],pixels:[],png:cached.png,title:track.artist+' - '+track.title});
@@ -650,19 +687,21 @@ async function dispatch(line) {
   if(line.startsWith('kotonoha:')){try{kotonoha.configure(JSON.parse(line.slice(9)));}catch{emit({kind:'error',message:'Kotonoha 配置无效；播放器仍可使用'});}return;}
   if(line==='searchhome'){void loadSearchHome();return;}
   if(line.startsWith('suggestions:')){suggestWanted=line.slice(12).trim().slice(0,100);if(!suggestRunning)void suggestLoop();return;}
+  if(line.startsWith('errorskip:')){const value=line.slice(10);if(['0','1'].includes(value)){autoSkipErrors=value==='1';recovery.reset();pendingFailure=null;}return;}
   if(line.startsWith('queuepolicy:')){const value=line.slice(12);if(['0','1'].includes(value))clearQueuesOnExit=value==='1';return;}
   if(line.startsWith('preferences:')){const [,quality,mode]=line.split(':');if(qualities.includes(quality))preferredQuality=quality;if(modes.includes(mode))playMode=mode;sendPreferences();return;}
   if(line==='order'){playMode=modes[(modes.indexOf(playMode)+1)%modes.length];sendPreferences();return;}
   if(line.startsWith('mode:')){const mode=line.slice(5);if(modes.includes(mode)){playMode=mode;sendPreferences();}return;}
   if(line==='maintain'&&busy)return;
+  if(line==='playbackfailure'&&busy)return;
   if(line==='autonext'&&busy){pendingAuto=true;return;}
   if(line.startsWith('pagesize:')){const size=Number(line.slice(9));if(Number.isInteger(size)&&size>=1&&size<=1000&&size!==pageSize){pendingSize=size;if(!busy)return dispatch('resize');}return;}
   if(line==='resize'){if(pendingSize===null)return;pageSize=pendingSize;pendingSize=null;}
-  if(line.trim()==='cancel'){cancelGeneration++;return;}
+  if(line.trim()==='cancel'){pendingFailure=null;recovery.reset();cancelGeneration++;return;}
   if(line==='home'){favoriteState=null;favoriteOrigin=null;pendingFavorite=null;songActionContext=null;cancelGeneration++;catalogEpoch++;collectionEpoch++;collectionInfo=null;collectionKey='';history.clear();view='search';keyword='';section='';tracks=[];lists=[];return;}
   if(line.startsWith('volume:')) {const value=Number(line.slice(7));if(Number.isFinite(value)){player.setVolume(value);emit({kind:'volume',value:player.volume});desktop.update({volume:player.volume});}return;}
   if (line.trim() === 'pause') { if(player.child)player.pause();else if(queue[queueIndex])return dispatch('resume');return; }
-  if (line.trim() === 'stop') { pendingHistoryTrack=null;pendingAuto=false;generation++;player.stop(); emit({ kind: 'status', message: '已停止播放' }); return; }
+  if (line.trim() === 'stop') { pendingFailure=null;recovery.reset();pendingHistoryTrack=null;pendingAuto=false;generation++;player.stop(); emit({ kind: 'status', message: '已停止播放' }); return; }
   if(line.startsWith('seekpercent:')){const ratio=Number(line.slice(12));const track=queue[queueIndex];if(!busy&&player.child&&track?.duration>0&&Number.isFinite(ratio))player.seek(Math.max(0,Math.min(1,ratio))*track.duration,true);return;}
   if(line.startsWith('seekrelative:')){if(!busy)player.seek(Number(line.slice(13)),false);return;}
   if(line.startsWith('seekto:')||line.startsWith('seekby:')) {
@@ -685,12 +724,12 @@ async function dispatch(line) {
     if(['accounts','playlists','recommend','discover','quality','queue','history','login'].includes(line)||['search:','switch:','deleteaccount:'].some(prefix=>line.startsWith(prefix))){collectionEpoch++;catalogEpoch++;collectionInfo=null;collectionKey='';}
     await restoreQueues();
     await run(line.trim());
-    if(view==='queue'&&['queueplay:','nexttrack','prevtrack','autonext','resume'].some(command=>line.startsWith(command))){
+    if(view==='queue'&&['queueplay:','nexttrack','prevtrack','autonext','resume','playbackfailure'].some(command=>line.startsWith(command))){
       queueHistory.update(queueIndex);resizing=true;await pageLoad(page);
     }
   }
-  catch (error) { if(/读取已取消/.test(error.message))return;emit({ kind: 'clear_qr' }); if(expired(error))emit({kind:'auth_required',message:'服务端仍拒绝当前凭证。账号已保留；稍后可重试，续期受保护间隔限制，按 L 可重新扫码。'});else emit({ kind: 'error', message: error.message }); }
-  finally { queueHistory.update(queueIndex);await saveQueues();resizing=false;busy = false;desktop.update({busy:false,...queueState()}); emit({ kind: 'busy', value: false }); if(closing)await closeWorker();else if(pendingAuto){pendingAuto=false;void dispatch('autonext');}else if(pendingSize!==null)void dispatch('resize'); }
+  catch (error) { if(/读取已取消|播放请求已取消/.test(error.message))return;emit({ kind: 'clear_qr' }); if(expired(error))emit({kind:'auth_required',message:'服务端仍拒绝当前凭证。账号已保留；稍后可重试，续期受保护间隔限制，按 L 可重新扫码。'});else emit({ kind: 'error', message: error.message }); }
+  finally { queueHistory.update(queueIndex);await saveQueues();resizing=false;busy = false;desktop.update({busy:false,...queueState()}); emit({ kind: 'busy', value: false }); if(closing)await closeWorker();else if(pendingFailure){void dispatch('playbackfailure');}else if(pendingAuto){pendingAuto=false;void dispatch('autonext');}else if(pendingSize!==null)void dispatch('resize'); }
 }
 let suggestWanted='',suggestRunning=false;
 async function suggestLoop(){

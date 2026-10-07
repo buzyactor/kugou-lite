@@ -7,7 +7,7 @@ const sources={
     async summary(){return [];} async select(index){this.userid=String(index+1);} async remove(){return true;}
     async withLock(action){return action();}
   }`,
-  'session-reader.mjs':`export const expired=()=>false; export const retryRead=async(request,route)=>request(route);
+  'session-reader.mjs':`export const expired=error=>error.businessCode===20017; export const retryRead=async(request,route)=>request(route);
     export class SessionReader {async maintain(){} async request(route){return globalThis.queueFavoriteRequest(route);}}`,
   'direct-api.mjs':`export const LOGIN_PROVIDER='mock';
     const favorites=new Map();let fileId=100;
@@ -40,7 +40,7 @@ const sources={
     }
     return globalThis.queueFavoriteRequest(route);
   };`,
-  'user-playlists.mjs':`export class UserPlaylists {clear(){} async page(request,id,kind){return [{title:kind+' list',listid:'1',publicId:kind,type:kind==='collected'?1:0,count:5}];}}`,
+  'user-playlists.mjs':`export class UserPlaylists {clear(){} async page(request,id,kind){return [{title:kind+' list',listid:'1',publicId:kind,type:kind==='collected'?1:0,isMine:0,ownerId:String(id),count:5}];}}`,
   'playlist-access.mjs':`export const playlistTracks=async(request,list,page,size)=>Array.from({length:5},(_,i)=>({hash:'d'+String(i).padStart(31,'0'),title:'personal'+i,artist:'Artist',duration:120,audioId:String(i),albumId:'1'})).slice((page-1)*size,page*size);`,
   'desktop.mjs':`export class Desktop {update(){} close(){}} export class Spectrum {start(){} stop(){}}`,
   'discovery.mjs':`export class Discovery {
@@ -54,12 +54,12 @@ const sources={
   }`,
   'music.mjs':`export const search=async()=>[];
     export const searchTracks=body=>(body.data?.lists??[]).map(r=>({hash:r.FileHash,title:r.SongName,artist:r.SingerName,duration:r.Duration,audioId:String(r.MixSongID),albumId:String(r.AlbumID)}));
-    export const resolveTrack=async(request,track)=>{if(track.title==='new1')throw Error('Synthetic playback failure');return track.hash;};
+    export const resolveTrack=async(request,track)=>{if(process.env.QUEUE_RESOLVE_DELAY)await new Promise(resolve=>setTimeout(resolve,60));if(process.env.QUEUE_AUTH_FAIL)throw Object.assign(Error('Synthetic authentication failure'),{businessCode:20017});if(process.env.QUEUE_ALL_FAIL||track.title==='new1')throw Error('Synthetic playback failure');return track.hash;};
     export const resolvePlayback=async(request,track,preferred)=>({url:await resolveTrack(request,track),info:{codec:'flac'},requested:preferred,resolved:preferred});
     export const inspectAudio=async()=>({codec:'flac'});export const requireLossless=()=>{};
     export class Player {
       constructor(onEvent,options){this.options=options;this.child=null;}
-      play(url){this.child={};this.options.onState('Playing');} stop(){this.child=null;this.options.onState('Stopped');}
+      play(url){const child=this.child={};this.options.onState('Playing');if(process.env.QUEUE_RUNTIME_FAIL&&url.startsWith('a'))setTimeout(()=>{if(this.child!==child)return;this.child=null;this.options.onState('Stopped');this.options.onFailure({playbackFatal:false});},30);} stop(){this.child=null;this.options.onState('Stopped');}
       setVolume(){} pause(){} setPaused(){} seek(){}
     }`,
 };

@@ -14,6 +14,7 @@ with tempfile.TemporaryDirectory(prefix='kugou-config-') as folder:
     config = json.loads((root / 'export.json').read_text())
     assert config == json.loads((app / 'config.json').read_text())
     assert 'theme' not in config
+    assert config['auto_skip_errors'] is True
     presets = list((app / 'themes').glob('*.json'))
     assert len(presets) == 23
     for path in presets:
@@ -23,6 +24,7 @@ with tempfile.TemporaryDirectory(prefix='kugou-config-') as folder:
         assert len(theme['panels']) == 9
         assert all(k in theme['lyrics'] for k in ['completed','past','word','pending','upcoming'])
         assert all(k in theme['progress'] for k in ['track','played','thumb'])
+    config['auto_skip_errors'] = False
     config['volume'] = 42
     config['clear_queues_on_exit'] = True
     config['kotonoha_enabled'] = True
@@ -41,6 +43,7 @@ with tempfile.TemporaryDirectory(prefix='kugou-config-') as folder:
         assert json.loads((root / 'export.json').read_text())['quality'] == quality
     for key in ['kotonoha_enabled','kotonoha_endpoint','kotonoha_clock_ms']:
         assert json.loads((app / 'config.json').read_text())[key] == config[key]
+    assert json.loads((app / 'config.json').read_text())['auto_skip_errors'] is False
     before = (app / 'config.json').read_bytes()
     (root / 'invalid.json').write_text('{"volume":101}')
     run('--import-config', root / 'invalid.json', ok=False)

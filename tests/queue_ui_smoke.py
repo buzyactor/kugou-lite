@@ -117,6 +117,12 @@ with tempfile.TemporaryDirectory(prefix='kugou-queue-ui-') as folder:
         assert contains('离开时清除播放列表'), 'exit queue option missing from playback settings'
         send(b'\x1b[B'*4);send(b'\r')
         assert json.loads((config / 'config.json').read_text())['clear_queues_on_exit'] is True
+        assert contains('播放失败自动下一首'), 'error skip setting missing'
+        assert json.loads((config / 'config.json').read_text())['auto_skip_errors'] is True
+        send(b'\x1b[B');send(b'\r')
+        assert json.loads((config / 'config.json').read_text())['auto_skip_errors'] is False
+        send(b'\r')
+        assert json.loads((config / 'config.json').read_text())['auto_skip_errors'] is True
         send(b'q'); process.wait(timeout=3)
         assert process.returncode == 0
         assert json.loads((config / 'config.json').read_text())['quality'] == 'viper_clear', 'selected quality not persisted'

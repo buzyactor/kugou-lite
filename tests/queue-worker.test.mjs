@@ -11,6 +11,7 @@ async function withWorker(check,options={}){
   const folder=options.QUEUE_TEST_FOLDER??await mkdtemp(join(tmpdir(),'kugou-queue-worker-'));
   const env={...process.env,...options,QUEUE_HISTORY_FILE:join(folder,'play-history.json')};delete env.NODE_TEST_CONTEXT;
   const child=spawn(process.execPath,['--import',new URL('./fixtures/queue-worker-mocks.mjs',import.meta.url).href,'tools/tui-worker.mjs'],{stdio:['pipe','pipe','pipe'],env});
+  if(!options.QUEUE_AUTO_SKIP)child.stdin.write('errorskip:0\n');
   const events=[];let stderr='',waiter;
   child.stderr.on('data',chunk=>stderr+=chunk);
   createInterface({input:child.stdout}).on('line',line=>{
@@ -256,3 +257,51 @@ test('played history lists only started tracks, not queue members or failed play
   const replay=await send('play:1');assert.equal(replay.find(e=>e.kind==='media'&&e.fresh)?.song,'daily0');
   const repeated=(await send('history')).find(e=>e.kind==='tracks');assert.deepEqual(repeated.tracks.map(r=>r.title),['daily0','daily1']);
 }));
+
+test('default error skip advances within one queue and remembers the successfully played index',async()=>withWorker(async({send,queue,child})=>{
+ await send('discover');const events=await send('play:1');
+ assert.equal(events.find(e=>e.kind==='media'&&e.fresh).song,'new2');
+ assert.ok(events.some(e=>e.kind==='status'&&/自动下一首/.test(e.message)));
+ let current=await queue();assert.equal(current.queueCount,1);assert.equal(current.tracks[2].active,true);
+ await send('recommend');await send('play:0');await send('queue');await send('queuenext');
+ await send('queueplay:1');assert.equal((await queue()).tracks[2].active,true);
+ child.stdin.write('errorskip:0\n');
+ const disabled=await send('queueplay:1');assert.ok(disabled.some(e=>e.kind==='error'));
+ current=await queue();assert.equal(current.tracks[2].active,true);
+},{QUEUE_AUTO_SKIP:'1'}));
+
+test('all failing songs stop after one pass even in single repeat without installing a partial queue',async()=>withWorker(async({send,queue,child})=>{
+ child.stdin.write('mode:single\n');await send('recommend');
+ const events=await send('play:0');assert.ok(events.some(e=>e.kind==='error'&&/自动跳过已停止/.test(e.message)));
+ assert.equal(events.filter(e=>e.kind==='status'&&/自动下一首/.test(e.message)).length,4);
+ assert.equal((await queue()).queueCount,0);
+},{QUEUE_AUTO_SKIP:'1',QUEUE_ALL_FAIL:'1'}));
+
+test('authentication failure remains visible and never tries the next song',async()=>withWorker(async({send,queue})=>{
+ await send('recommend');const events=await send('play:0');
+ assert.equal(events.filter(e=>e.kind==='auth_required').length,1);
+ assert.ok(!events.some(e=>e.kind==='status'&&/自动下一首/.test(e.message)));
+ assert.equal((await queue()).queueCount,0);
+},{QUEUE_AUTO_SKIP:'1',QUEUE_AUTH_FAIL:'1'}));
+
+test('player load failures automatically advance and stop after exhausting the queue',async()=>withWorker(async({send,queue})=>{
+ await send('recommend');await send('play:0');
+ await new Promise(resolve=>setTimeout(resolve,350));
+ const current=await queue();assert.equal(current.queueCount,1);assert.equal(current.tracks[4].remembered,true);
+ assert.ok(!current.tracks.some(t=>t.active));
+},{QUEUE_AUTO_SKIP:'1',QUEUE_RUNTIME_FAIL:'1'}));
+
+test('manual stop during resolution cancels the recovery chain before another song is tried',async()=>withWorker(async({send,child,queue})=>{
+ await send('recommend');const playing=send('play:0');
+ await new Promise(resolve=>setTimeout(resolve,30));child.stdin.write('stop\n');
+ const events=await playing;assert.ok(!events.some(e=>e.kind==='media'&&e.fresh));
+ assert.ok(!events.some(e=>e.kind==='status'&&/自动下一首/.test(e.message)));
+ assert.equal((await queue()).queueCount,0);
+},{QUEUE_AUTO_SKIP:'1',QUEUE_ALL_FAIL:'1',QUEUE_RESOLVE_DELAY:'1'}));
+
+test('disabled error skip leaves a failed player on the chosen song for manual action',async()=>withWorker(async({send,queue})=>{
+ await send('recommend');await send('play:0');
+ await new Promise(resolve=>setTimeout(resolve,150));
+ const current=await queue();assert.equal(current.tracks[0].remembered,true);
+ assert.ok(!current.tracks.some(t=>t.active));
+},{QUEUE_RUNTIME_FAIL:'1'}));

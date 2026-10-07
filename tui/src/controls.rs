@@ -575,6 +575,14 @@ pub fn settings_rows(s: &Settings) -> Vec<String> {
             "关闭 · 保留列表"
         }
     ));
+    rows.push(format!(
+        "播放失败自动下一首  {}",
+        if s.auto_skip_errors {
+            "开启"
+        } else {
+            "关闭"
+        }
+    ));
     rows
 }
 pub const SETTINGS_PAGES: [&str; 6] = ["外观", "歌词", "播放", "状态栏", "快捷键 / 配置", "通知"];
@@ -582,7 +590,7 @@ pub fn settings_indices(s: &Settings, page: usize) -> Vec<usize> {
     match page {
         0 => vec![0, 1, 3, 4, 10, 28],
         1 => vec![2, 6, 11, 12, 13, 29, 30],
-        2 => vec![5, 7, 8, 9, 31],
+        2 => vec![5, 7, 8, 9, 31, 32],
         3 => {
             let mut ids = vec![14];
             for id in &s.status_items {

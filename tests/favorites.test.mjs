@@ -4,7 +4,7 @@ import {Favorites,uniqueTracks} from '../src/favorites.mjs';
 import {favoriteParams} from '../src/library.mjs';
 const track=i=>({hash:String(i).padStart(32,'a'),title:'Name,|'+i,artist:'Artist',albumId:'2',audioId:String(i)});
 const raw=(i,fileid)=>({hash:track(i).hash,filename:'Artist - Song',mixsongid:String(i),album_id:'2',fileid});
-const list={listid:'42',type:0,ownerId:'7',title:'Mine'};
+const list={listid:'42',type:0,ownerId:'7',isMine:0,title:'Mine'};
 test('membership tolerates missing audio IDs and quality hashes; invalid IDs cannot corrupt batch parameters',async()=>{
  const service=new Favorites(),row=raw(1,'22');delete row.mixsongid;
  const existing=await service.inspect(async()=>({data:{info:[row]}}),'7',list,[track(1)]);
@@ -45,4 +45,13 @@ test('unwritable collections, unknown membership and missing fileids never mutat
  const missing=await service.inspect(async()=>({data:{info:[]}}),'7',list,[track(1)]);
  let writes=0;await assert.rejects(service.apply(async()=>{writes++;throw Error('timeout');},missing,'add'),/timeout/);assert.equal(writes,1);
  await assert.rejects(service.inspect(async()=>({data:{info:'invalid'}}),'7',list,[track(1)]));
+});
+
+test('owned directory lists accept is_mine zero or false while rejecting another owner',async()=>{
+ const service=new Favorites();
+ for(const isMine of [0,'0',false]){
+  const state=await service.inspect(async()=>({data:{info:[]}}),'7',{...list,isMine},[track(1)]);
+  assert.equal(state.missing.length,1);
+  await assert.rejects(service.inspect(()=>{throw Error('must not read');},'8',{...list,isMine},[track(1)]),/自己创建/);
+ }
 });
