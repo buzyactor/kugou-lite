@@ -6,7 +6,7 @@ Windows 原生版本开发入口：[WINDOWS_HANDOFF.md](docs/WINDOWS_HANDOFF.md)
 
 Rust + Ratatui 酷狗概念版 TUI。Node.js 调用本地参考项目的酷狗接口；mpv 负责音频播放，通过 JSON IPC 控制播放、跳转、读取进度。当前使用独立 mpv 进程，没有嵌入 libmpv。
 
-Kotonoha 桌面歌词接入：在设置 → 歌词中开启“Kotonoha 桌面歌词”，默认向 `ws://127.0.0.1:28745/kotonoha/adapter` 发布完整歌词与实际播放校准。默认关闭，未启动 Kotonoha 不影响播放。配置、身份、时间偏移、真实协议验证与下一段开发事项见 [交接文档](docs/KOTONOHA_INTEGRATION.md)。
+Kotonoha 桌面歌词接入：在设置 → 歌词中开启“Kotonoha 桌面歌词”，默认向 `ws://127.0.0.1:28745/kotonoha/adapter` 发布完整歌词与实际播放校准。默认关闭，未启动 Kotonoha 不影响播放。配置、身份、时间偏移、真实协议验证与下一段开发事项见 [交接文档](docs/KOTONOHA_INTEGRATION.md)。将同类功能接入已有 EchoMusic clone 的经验与开发入口见 [EchoMusic → Kotonoha 交接](docs/ECHOMUSIC_KOTONOHA_HANDOFF.md)。
 
 ## 启动
 

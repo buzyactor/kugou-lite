@@ -1,6 +1,10 @@
 # Kugou Lite 开发交接
 
-更新：2026-10-07（Asia/Shanghai）。新工作对话先读本文件，再读根 STATUS.md、README.md和相关源码；本文件可以独立使用，不依赖已压缩聊天。用户最新反馈优先，历史测试不等于当前实机验收。
+更新：2026-10-11（Asia/Shanghai）。新工作对话先读本文件，再读根 STATUS.md、README.md和相关源码；本文件可以独立使用，不依赖已压缩聊天。用户最新反馈优先，历史测试不等于当前实机验收。
+
+## 最新：EchoMusic → Kotonoha 交接
+
+用户准备另开对话给已有EchoMusic clone增加歌词推送。本次只整理[经验与接手文档](ECHOMUSIC_KOTONOHA_HANDOFF.md)，核对两个独立checkout及现有Kugou适配器，说明EchoMusic混合时间单位、有效偏移、估算字符、主进程连接、协议和来源争用；未实现EchoMusic功能、未改系统配置或独立仓库。文末有可复制开工指令。
 
 ## 最新：Windows 版本开发交接
 

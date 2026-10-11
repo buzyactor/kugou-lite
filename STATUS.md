@@ -1,6 +1,6 @@
 # Kugou Lite 开发状态
 
-更新时间：2026-10-07（Asia/Shanghai）。新工作对话先读 docs/HANDOFF.md，再读本文件和实际代码；操作说明见 README.md。
+更新时间：2026-10-11（Asia/Shanghai）。新工作对话先读 docs/HANDOFF.md，再读本文件和实际代码；操作说明见 README.md。
 
 ## 维护约定
 
@@ -9,6 +9,11 @@
 - 用户只打开二进制；每次应用代码修改后必须由开发者测试并编译好 `tui/target/debug/kugou-lite`，不能要求用户自行编译。
 - 不记录账号凭据、token、cookie、二维码内容或原始账号响应。不要读取凭据文件来补充状态。
 - 下方测试是最近开发阶段的记录，不表示每次更新文档都重新执行，也不代表线上接口必然可用。
+
+## EchoMusic → Kotonoha 文档交接（2026-10-11）
+
+- 新增[专项交接](docs/ECHOMUSIC_KOTONOHA_HANDOFF.md)：总结完整文档/真实时钟、连接可靠性、竞态及来源争用经验，核对EchoMusic歌词/播放/IPC/构建入口，单列秒/毫秒、正值提前偏移、估算字符和协议限制。
+- 只整理文档，没有实现EchoMusic推送或改动任何应用/系统配置；EchoMusic保持干净，Kotonoha原有未跟踪交接保留。文档两份消息示例已通过实际Kotonoha解码器，trackRef/序号/英文空格及链接检查通过；这不视为真实EchoMusic推送或浮窗验收。
 
 ## Windows 原生版本交接（2026-10-07）
 
